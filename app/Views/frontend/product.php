@@ -61,10 +61,10 @@ $accordions = array_filter([
             <div class="flex flex-col-reverse sm:flex-row-reverse lg:flex-row-reverse gap-3">
                 <!-- Main image -->
                 <div class="flex-1 relative">
-                    <div class="relative aspect-square rounded-lg overflow-hidden bg-sand" data-gallery-main>
+                    <div class="relative rounded-lg overflow-hidden bg-sand" data-gallery-main>
                         <img src="<?= esc(product_image($images[0]['image']), 'attr') ?>" alt="<?= esc($images[0]['alt_text'] ?: $p['name'], 'attr') ?>"
-                             width="1000" height="1000" fetchpriority="high"
-                             class="w-full h-full object-cover cursor-zoom-in" data-gallery-image>
+                             fetchpriority="high"
+                             class="w-full h-auto block cursor-zoom-in" data-gallery-image>
                         <?php if ($discount > 0): ?><span class="badge-sale absolute top-4 left-4">-<?= $discount ?>%</span><?php endif ?>
                         <button type="button" class="absolute bottom-4 right-4 w-10 h-10 rounded-full bg-bg/90 backdrop-blur flex items-center justify-center shadow-soft hover:bg-white" data-gallery-zoom aria-label="View full screen">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>

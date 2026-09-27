@@ -1,0 +1,13 @@
+{
+  "name": "swing-store",
+  "version": "1.0.0",
+  "description": "Premium handcrafted wooden swing e-commerce storefront",
+  "private": true,
+  "scripts": {
+    "dev": "tailwindcss -i ./resources/css/app.css -o ./public/assets/css/app.css --watch",
+    "build": "tailwindcss -i ./resources/css/app.css -o ./public/assets/css/app.css --minify"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.17"
+  }
+}

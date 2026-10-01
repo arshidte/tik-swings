@@ -24,6 +24,8 @@ $routes->get('about', 'Frontend\Pages::about');
 $routes->get('craftsmanship', 'Frontend\Pages::craftsmanship');
 $routes->get('custom-swings', 'Frontend\Pages::customSwings');
 $routes->get('contact', 'Frontend\Pages::contact');
+$routes->get('return-and-refunds', 'Frontend\Pages::returnAndRefunds');
+$routes->get('help-center', 'Frontend\Pages::helpCenter');
 $routes->post('contact', 'Frontend\Pages::submitContact');
 $routes->get('faq', 'Frontend\Pages::faq');
 $routes->get('journal', 'Frontend\Pages::journal');

@@ -11,15 +11,15 @@ $isActive    = static fn (string $p): string => str_starts_with($currentPath, $p
 </div>
 
 <header class="sticky top-0 z-40 bg-bg/90 backdrop-blur-md border-b border-line" data-header>
-    <nav class="container-page flex items-center gap-4 h-header" aria-label="Primary">
+    <nav class="container-page flex items-center gap-2 sm:gap-4 h-header" aria-label="Primary">
         <!-- Mobile: menu -->
         <button type="button" class="lg:hidden -ml-2 p-2 text-ink" data-menu-open aria-label="Open menu" aria-controls="mobile-menu" aria-expanded="false">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16"/></svg>
         </button>
 
         <!-- Logo -->
-        <a href="<?= base_url('/') ?>" class="flex items-center mr-auto lg:mr-0 shrink-0" aria-label="<?= esc(store_name()) ?> home">
-            <img src="<?= base_url('assets/images/logo.png') ?>" alt="<?= esc(store_name()) ?>" width="600" height="143" class="h-9 sm:h-10 w-auto" fetchpriority="high">
+        <a href="<?= base_url('/') ?>" class="flex items-center mr-auto lg:mr-0 min-w-0 shrink" aria-label="<?= esc(store_name()) ?> home">
+            <img src="<?= base_url('assets/images/logo.png') ?>" alt="<?= esc(store_name()) ?>" width="600" height="143" class="h-7 sm:h-9 lg:h-10 w-auto max-w-full" fetchpriority="high">
         </a>
 
         <!-- Desktop nav -->
@@ -53,17 +53,17 @@ $isActive    = static fn (string $p): string => str_starts_with($currentPath, $p
 
         <!-- Actions -->
         <div class="flex items-center gap-1 sm:gap-2 ml-auto lg:ml-0">
-            <button type="button" class="p-2.5 rounded-full hover:bg-sand transition-colors" data-search-open aria-label="Search products">
+            <button type="button" class="p-2 sm:p-2.5 rounded-full hover:bg-sand transition-colors" data-search-open aria-label="Search products">
                 <svg class="w-[22px] h-[22px]" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path stroke-linecap="round" d="m20 20-3.5-3.5"/></svg>
             </button>
             <a href="<?= base_url('account') ?>" class="hidden sm:inline-flex p-2.5 rounded-full hover:bg-sand transition-colors" aria-label="Your account">
                 <svg class="w-[22px] h-[22px]" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path stroke-linecap="round" d="M5 20c0-3.3 3.1-6 7-6s7 2.7 7 6"/></svg>
             </a>
-            <a href="<?= base_url('wishlist') ?>" class="relative p-2.5 rounded-full hover:bg-sand transition-colors" aria-label="Wishlist">
+            <a href="<?= base_url('wishlist') ?>" class="relative p-2 sm:p-2.5 rounded-full hover:bg-sand transition-colors" aria-label="Wishlist">
                 <svg class="w-[22px] h-[22px]" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 20s-7-4.4-7-9.3C5 7.9 7 6 9.3 6c1.4 0 2.7.7 3.4 1.9C13.4 6.7 14.7 6 16.1 6 18.4 6 20 7.9 20 10.7 20 15.6 12 20 12 20Z"/></svg>
                 <span data-wishlist-count class="<?= $wishCount ? '' : 'hidden' ?> absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-wood text-white text-[11px] font-semibold inline-flex items-center justify-center tabular-nums"><?= $wishCount ?></span>
             </a>
-            <button type="button" class="relative p-2.5 rounded-full hover:bg-sand transition-colors" data-cart-open aria-label="Open cart">
+            <button type="button" class="relative p-2 sm:p-2.5 rounded-full hover:bg-sand transition-colors" data-cart-open aria-label="Open cart">
                 <svg class="w-[22px] h-[22px]" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 7h12l-1 13H7L6 7Zm3 0a3 3 0 0 1 6 0"/></svg>
                 <span data-cart-count class="<?= $cartCount ? '' : 'hidden' ?> absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-terracotta text-white text-[11px] font-semibold inline-flex items-center justify-center tabular-nums"><?= $cartCount ?></span>
             </button>

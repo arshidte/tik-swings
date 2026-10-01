@@ -41,7 +41,7 @@ $rcount   = (int) ($p['rating_count'] ?? 0);
         </button>
 
         <!-- Quick add (desktop hover / always tappable on mobile) -->
-        <div class="absolute inset-x-3 bottom-3 sm:translate-y-3 sm:opacity-0 sm:group-hover:translate-y-0 sm:group-hover:opacity-100 transition-all duration-300 ease-out-soft">
+        <div class="hidden sm:block absolute inset-x-3 bottom-3 sm:translate-y-3 sm:opacity-0 sm:group-hover:translate-y-0 sm:group-hover:opacity-100 transition-all duration-300 ease-out-soft">
             <?php if (! empty($p['has_variants']) || ! empty($p['is_customizable'])): ?>
                 <a href="<?= esc($url, 'attr') ?>" class="btn bg-ink/90 text-bg backdrop-blur btn-sm btn-block hover:bg-ink">Choose options</a>
             <?php else: ?>
@@ -55,7 +55,7 @@ $rcount   = (int) ($p['rating_count'] ?? 0);
 
     <!-- Meta -->
     <div class="pt-3.5 flex flex-col gap-1">
-        <div class="flex items-center gap-2 text-xs text-subtle">
+        <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-subtle">
             <?php if (! empty($p['wood_type'])): ?><span><?= esc($p['wood_type']) ?></span><?php endif ?>
             <?php if (! empty($p['wood_type']) && $rcount > 0): ?><span aria-hidden="true">·</span><?php endif ?>
             <?php if ($rcount > 0): ?>

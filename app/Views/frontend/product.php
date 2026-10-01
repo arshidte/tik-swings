@@ -153,14 +153,28 @@ $accordions = array_filter([
             <ul class="mt-7 grid grid-cols-2 gap-y-3 gap-x-4 text-sm border-t border-line pt-6">
                 <?php
                 $assur = [
-                    ['M4 13l4 4L20 7', $p['delivery_estimate'] ?: 'Handcrafted to order'],
-                    ['M12 3l7 4v5c0 4-3 7-7 8-4-1-7-4-7-8V7z', $p['warranty'] ?: '3-year warranty'],
-                    ['M5 4v6m14-6v6M5 10h14', $p['material'] ?: 'Solid wood'],
-                    ['M3 12h18', $p['installation_available'] ? 'Installation available' : 'Easy self-assembly'],
+                    [
+                        '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>', 
+                        $p['delivery_estimate'] ?: 'Handcrafted to order'
+                    ],
+                    [
+                        '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>', 
+                        $p['warranty'] ?: '3-year warranty'
+                    ],
+                    [
+                        '<path d="m17 14 3 3.3a1 1 0 0 1-.7 1.7H4.7a1 1 0 0 1-.7-1.7L7 14h-.3a1 1 0 0 1-.7-1.7L9 9h-.2A1 1 0 0 1 8 7.3L12 3l4 4.3a1 1 0 0 1-.8 1.7H15l3 3.3a1 1 0 0 1-.8 1.7H17Z"/><path d="M12 22v-3"/>', 
+                        $p['material'] ?: 'Solid wood'
+                    ],
+                    [
+                        '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>', 
+                        $p['installation_available'] ? 'Installation available' : 'Easy self-assembly'
+                    ],
                 ];
-                foreach ($assur as [$icon, $label]): ?>
+                foreach ($assur as [$svg_inner, $label]): ?>
                     <li class="flex items-center gap-2 text-muted">
-                        <svg class="w-5 h-5 text-wood shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="<?= $icon ?>"/></svg>
+                        <svg class="w-5 h-5 text-wood shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                            <?= $svg_inner ?>
+                        </svg>
                         <span><?= esc($label) ?></span>
                     </li>
                 <?php endforeach ?>

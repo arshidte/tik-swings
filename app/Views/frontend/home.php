@@ -8,10 +8,10 @@ $rooms = [
     ['veranda', 'Veranda'], ['courtyard', 'Courtyard'], ['reading-corner', 'Reading Corner'],
 ];
 $craft = [
-    ['real-wood', 'Crafted from Real Wood', 'Solid, seasoned teak and sheesham — never veneer, never particle board. Wood that ages into your home.'],
-    ['comfort', 'Designed for Comfort', 'Seat heights, curves and rope tension tuned by hand so every swing feels right the moment you sit.'],
-    ['artisans', 'Made by Skilled Artisans', 'Shaped by families who have worked wood for generations, each piece carries the marks of the hand that made it.'],
-    ['everyday', 'Built for Everyday Life', 'Traditional joinery, marine-grade rope and brass hardware — engineered to move silently for decades.'],
+    ['tikswings-placed-order', 'You Place Your Order', 'Pick your swing, choose your wood and finish, and check out. That is all it takes to set everything in motion.'],
+    ['tikswings-customer-received-confirmation-call', 'We Confirm Every Detail', 'Before a single cut is made, we call you to confirm your size, finish and delivery — so nothing is left to chance.'],
+    ['tikswings-started-work-in-workshop', 'Your Swing Takes Shape', 'Our artisans begin work in the workshop, shaping and joining your swing by hand from seasoned solid wood.'],
+    ['tikswings-packed-and-ready-to-ship', 'Packed and Ready to Ship', 'Finished, quality-checked and carefully packed, your swing leaves our workshop and heads to your door.'],
 ];
 $trust = [
     ['<path d="m17 14 3 3.3a1 1 0 0 1-.7 1.7H4.7a1 1 0 0 1-.7-1.7L7 14h-.3a1 1 0 0 1-.7-1.7L9 9h-.2A1 1 0 0 1 8 7.3L12 3l4 4.3a1 1 0 0 1-.8 1.7H15l3 3.3a1 1 0 0 1-.8 1.7H17Z"/><path d="M12 19v3"/>', 'Solid Wood'],
@@ -193,25 +193,31 @@ $igHandle = ($igUrl && preg_match('#instagram\.com/([A-Za-z0-9_.]+)#i', $igUrl, 
 </section>
 
 <!-- ==================== CRAFTSMANSHIP STORY (§14) =================== -->
-<section class="section bg-ink text-bg">
+<section class="section bg-ink text-bg overflow-hidden">
     <div class="container-page">
-        <div class="max-w-2xl reveal">
-            <p class="eyebrow text-wood-light">Our craft</p>
-            <h2 class="mt-2 text-h2 text-bg">You Can Feel the Craftsmanship.</h2>
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between reveal">
+            <div class="max-w-xl">
+                <p class="eyebrow text-wood-light">Your order journey</p>
+                <h2 class="mt-2 text-h2 text-bg">From Our Workshop to Your Door.</h2>
+            </div>
+            <p class="max-w-xs text-sm leading-relaxed text-bg/50">Four simple steps — from the moment you check out to a handcrafted swing arriving at your door.</p>
         </div>
-        <div class="mt-12 space-y-16 lg:space-y-24">
+
+        <div class="relative mt-10 grid grid-cols-1 gap-x-6 gap-y-9 sm:grid-cols-2 lg:mt-14 lg:grid-cols-4">
             <?php foreach ($craft as $i => [$img, $title, $body]): ?>
-                <div class="grid lg:grid-cols-2 gap-8 lg:gap-14 items-center">
-                    <div class="reveal <?= $i % 2 ? 'lg:order-2' : '' ?>">
-                        <div class="aspect-[4/3] rounded-lg overflow-hidden bg-wood-dark/40">
-                            <img src="<?= base_url('assets/images/craft/' . $img . '.svg') ?>" alt="<?= esc($title, 'attr') ?>" loading="lazy" width="1100" height="1300" class="w-full h-full object-cover">
-                        </div>
+                <div class="group reveal" data-reveal-delay="<?= ($i % 4) * 90 ?>">
+                    <div class="relative aspect-[4/3] overflow-hidden rounded-xl bg-wood-dark/40 ring-1 ring-bg/10">
+                        <img src="<?= base_url('assets/images/' . $img . '.webp') ?>" alt="<?= esc($title, 'attr') ?>" loading="lazy" width="1200" height="800" class="h-full w-full object-cover transition-transform duration-700 ease-out-soft group-hover:scale-105">
+                        <div class="absolute inset-0 bg-gradient-to-t from-ink/50 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100"></div>
                     </div>
-                    <div class="reveal <?= $i % 2 ? 'lg:order-1' : '' ?>">
-                        <span class="font-display text-5xl text-wood-light/40">0<?= $i + 1 ?></span>
-                        <h3 class="mt-3 font-display text-2xl sm:text-3xl text-bg"><?= esc($title) ?></h3>
-                        <p class="mt-4 text-bg/70 max-w-md leading-relaxed"><?= esc($body) ?></p>
+                    <div class="relative mt-5 flex items-center">
+                        <span class="relative z-10 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-wood-light font-display text-lg text-ink shadow-lift">0<?= $i + 1 ?></span>
+                        <?php if ($i < count($craft) - 1): ?>
+                            <span class="absolute left-11 right-[-1.5rem] top-1/2 hidden h-px -translate-y-1/2 bg-bg/15 lg:block"></span>
+                        <?php endif ?>
                     </div>
+                    <h3 class="mt-4 font-display text-xl text-bg"><?= esc($title) ?></h3>
+                    <p class="mt-2 text-sm leading-relaxed text-bg/60"><?= esc($body) ?></p>
                 </div>
             <?php endforeach ?>
         </div>
@@ -264,30 +270,6 @@ $igHandle = ($igUrl && preg_match('#instagram\.com/([A-Za-z0-9_.]+)#i', $igUrl, 
                     <h3 class="absolute bottom-4 left-4 font-display text-xl text-bg"><?= esc($name) ?></h3>
                 </a>
             <?php endforeach ?>
-        </div>
-    </div>
-</section>
-
-<!-- ============= SIGNATURE INTERACTION: TAKE A MOMENT (§48) ========= -->
-<section class="section bg-ink text-bg overflow-hidden">
-    <div class="container-page grid lg:grid-cols-2 gap-10 items-center">
-        <div class="reveal">
-            <p class="eyebrow text-wood-light">Try it</p>
-            <h2 class="mt-2 text-h2 text-bg">Take a Moment.</h2>
-            <p class="mt-4 text-bg/70 max-w-md">Some furniture isn't meant to be rushed. Drag the swing — then let it settle, the way a real one would.</p>
-            <p class="mt-3 text-xs text-bg/40">Drag left or right · or use the arrow keys</p>
-        </div>
-        <div class="relative h-[360px] sm:h-[440px] select-none cursor-grab flex justify-center" data-swing role="slider" aria-label="Drag the swing" aria-valuemin="-22" aria-valuemax="22" aria-valuenow="0">
-            <!-- Anchor beam -->
-            <div class="absolute top-6 left-1/2 -translate-x-1/2 w-56 h-2 rounded-full bg-wood-dark"></div>
-            <!-- Pivot group swings from the top -->
-            <div class="absolute top-7 origin-top" style="transform-origin:top center" data-swing-pivot>
-                <div class="flex gap-24">
-                    <span class="block w-1 h-64 bg-wood-light/70 rounded-full"></span>
-                    <span class="block w-1 h-64 bg-wood-light/70 rounded-full"></span>
-                </div>
-                <div class="absolute top-64 left-1/2 -translate-x-1/2 w-40 h-10 rounded-lg bg-wood shadow-lift"></div>
-            </div>
         </div>
     </div>
 </section>

@@ -121,6 +121,20 @@ class Pages extends BaseController
         ]);
     }
 
+    public function returnAndRefunds(): string
+    {
+        return view('frontend/return_and_refunds', [
+            'meta' => ['title' => 'Return and Refunds — ' . store_name(), 'description' => 'Carefully read our return and refund policy.'],
+        ]);
+    }
+
+    public function helpCenter(): string
+    {
+        return view('frontend/help_center', [
+            'meta' => ['title' => 'Help Center — ' . store_name(), 'description' => 'Help Center: Get answers to your general FAQs.'],
+        ]);
+    }
+
     public function submitContact()
     {
         $model = new ContactMessageModel();

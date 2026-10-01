@@ -50,9 +50,9 @@ $sorts = [
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24"><path stroke-linecap="round" d="M4 6h16M7 12h10M10 18h4"/></svg>
                     Filters
                 </button>
-                <div class="ml-auto flex items-center gap-2">
+                <div class="ml-auto flex min-w-0 items-center gap-2">
                     <label for="sort" class="text-sm text-muted hidden sm:inline">Sort</label>
-                    <select id="sort" data-sort class="field-input py-2 min-h-[40px] w-auto text-sm pr-9">
+                    <select id="sort" data-sort class="field-input py-2 min-h-[40px] w-auto min-w-0 max-w-full text-sm pr-9">
                         <?php foreach ($sorts as $val => $label): ?>
                             <option value="<?= $val ?>" <?= ($sort === $val) ? 'selected' : '' ?>><?= esc($label) ?></option>
                         <?php endforeach ?>

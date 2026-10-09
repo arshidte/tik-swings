@@ -45,7 +45,7 @@ $isActive    = static fn (string $p): string => str_starts_with($currentPath, $p
                     </div>
                 </div>
             </li>
-            <li><a href="<?= base_url('custom-swings') ?>" class="<?= $isActive('/custom-swings') ?> hover:text-wood py-2">Custom Swings</a></li>
+
             <li><a href="<?= base_url('craftsmanship') ?>" class="<?= $isActive('/craftsmanship') ?> hover:text-wood py-2">Craftsmanship</a></li>
             <li><a href="<?= base_url('journal') ?>" class="<?= $isActive('/journal') ?> hover:text-wood py-2">Journal</a></li>
             <li><a href="<?= base_url('about') ?>" class="<?= $isActive('/about') ?> hover:text-wood py-2">About</a></li>
@@ -91,7 +91,7 @@ $isActive    = static fn (string $p): string => str_starts_with($currentPath, $p
             <p class="eyebrow mb-2">More</p>
             <ul class="divide-y divide-line">
                 <li><a href="<?= base_url('shop') ?>" class="block py-3 text-lg">Shop All</a></li>
-                <li><a href="<?= base_url('custom-swings') ?>" class="block py-3 text-lg">Custom Swings</a></li>
+
                 <li><a href="<?= base_url('craftsmanship') ?>" class="block py-3 text-lg">Craftsmanship</a></li>
                 <li><a href="<?= base_url('journal') ?>" class="block py-3 text-lg">Journal</a></li>
                 <li><a href="<?= base_url('about') ?>" class="block py-3 text-lg">About</a></li>

@@ -54,7 +54,7 @@
             <ul class="space-y-2.5 text-sm">
                 <li><a href="<?= base_url('about') ?>" class="text-bg/60 hover:text-bg transition-colors">Our Story</a></li>
                 <li><a href="<?= base_url('craftsmanship') ?>" class="text-bg/60 hover:text-bg transition-colors">The Craft</a></li>
-                <li><a href="<?= base_url('custom-swings') ?>" class="text-bg/60 hover:text-bg transition-colors">Custom Swings</a></li>
+
                 <li><a href="<?= base_url('journal') ?>" class="text-bg/60 hover:text-bg transition-colors">Journal</a></li>
                 <li><a href="<?= base_url('faq') ?>" class="text-bg/60 hover:text-bg transition-colors">FAQ</a></li>
                 <li><a href="<?= base_url('contact') ?>" class="text-bg/60 hover:text-bg transition-colors">Contact</a></li>

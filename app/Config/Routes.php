@@ -22,7 +22,7 @@ $routes->get('search/suggest', 'Frontend\Search::suggest');
 // Content pages
 $routes->get('about', 'Frontend\Pages::about');
 $routes->get('craftsmanship', 'Frontend\Pages::craftsmanship');
-$routes->get('custom-swings', 'Frontend\Pages::customSwings');
+// $routes->get('custom-swings', 'Frontend\Pages::customSwings');
 $routes->get('contact', 'Frontend\Pages::contact');
 $routes->get('return-and-refunds', 'Frontend\Pages::returnAndRefunds');
 $routes->get('help-center', 'Frontend\Pages::helpCenter');

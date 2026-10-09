@@ -70,8 +70,13 @@ class Security extends BaseConfig
      * --------------------------------------------------------------------------
      *
      * Regenerate CSRF Token on every submission.
+     *
+     * Kept false so the token stays valid for the whole session. With `true`,
+     * the token is single-use and rotates after each successful POST, which
+     * makes the browser Back button, a second/older tab, or refresh-and-submit
+     * throw a spurious 403 ("The action you requested is not allowed.").
      */
-    public bool $regenerate = true;
+    public bool $regenerate = false;
 
     /**
      * --------------------------------------------------------------------------

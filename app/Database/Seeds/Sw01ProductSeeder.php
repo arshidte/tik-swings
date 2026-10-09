@@ -2,6 +2,7 @@
 
 namespace App\Database\Seeds;
 
+use App\Database\Seeds\Concerns\BuildsSwingVariants;
 use CodeIgniter\Database\Seeder;
 
 /**
@@ -15,6 +16,8 @@ use CodeIgniter\Database\Seeder;
  */
 class Sw01ProductSeeder extends Seeder
 {
+    use BuildsSwingVariants;
+
     public function run(): void
     {
         helper('url');
@@ -28,16 +31,20 @@ class Sw01ProductSeeder extends Seeder
         // --- Category ----------------------------------------------------------
         $catId = (int) ($db->table('categories')->select('id')->where('slug', 'classic-swings')->get()->getRow('id') ?? 0);
 
-        // --- Attributes: Wood Finish & Chain Finish ---------------------------
-        $woodFinishId  = $this->ensureAttribute($db, 'Wood Finish', 'wood-finish', 10);
-        $chainFinishId = $this->ensureAttribute($db, 'Chain Finish', 'chain-finish', 11);
+        // --- Attributes: Wood Finish × Size × Polish --------------------------
+        $woodFinishId = $this->ensureAttribute($db, 'Wood Finish', 'wood-finish', 10);
+        $sizeId       = $this->ensureAttribute($db, 'Size', 'size', 2);
+        $polishId     = $this->ensureAttribute($db, 'Polish', 'polish', 1);
 
         $woodValues = $this->ensureValues($db, $woodFinishId, [
             'Light Teak' => '#C9A26A', 'Dark Teak' => '#7A4B28', 'Walnut' => '#5A3A22',
             'Mahogany'   => '#6E3B2E', 'Black'     => '#2A2320',
         ]);
-        $chainValues = $this->ensureValues($db, $chainFinishId, [
-            'Steel' => '#B8BCC0', 'Brass' => '#B08D57',
+        $sizeValues = $this->ensureValues($db, $sizeId, [
+            '3 Feet' => null, '4 Feet' => null, '5 Feet' => null,
+        ]);
+        $polishValues = $this->ensureValues($db, $polishId, [
+            'Standard Polish' => null, 'Premium Polish' => null, 'Luxury Polish' => null,
         ]);
 
         // --- Product (upsert) --------------------------------------------------
@@ -53,8 +60,8 @@ class Sw01ProductSeeder extends Seeder
             'sku'                    => $sku,
             'short_description'      => $short,
             'description'            => $long,
-            'price'                  => 24999,   // placeholder — confirm & update
-            'compare_price'          => 29999,   // placeholder
+            'price'                  => 13500,   // cheapest variant (3 Feet / Standard Polish)
+            'compare_price'          => null,    // pricelist has no MRP
             'cost_price'             => null,
             'stock'                  => 15,
             'stock_status'           => 'made_to_order',
@@ -118,33 +125,17 @@ class Sw01ProductSeeder extends Seeder
             ]);
         }
 
-        // --- Variants: Wood Finish × Chain Finish -----------------------------
-        $abbr = static fn (string $s): string => strtoupper(substr(preg_replace('/[^A-Za-z]/', '', $s), 0, 2));
-        foreach ($woodValues as $wood => $wid) {
-            foreach ($chainValues as $chain => $cid) {
-                $isDefault = ($wood === 'Light Teak' && $chain === 'Steel') ? 1 : 0;
-                $db->table('product_variants')->insert([
-                    'product_id'    => $pid,
-                    'sku'           => "{$sku}-" . $abbr($wood) . '-' . $abbr($chain),
-                    'name'          => "Classic Wooden Hanging Swing — {$wood} / {$chain} chain",
-                    'price'         => 24999,
-                    'compare_price' => 29999,
-                    'stock'         => 15,
-                    'image'         => "{$base}/main/classic-swing-01.webp",
-                    'is_default'    => $isDefault,
-                    'status'        => 'active',
-                    'created_at'    => $now,
-                    'updated_at'    => $now,
-                ]);
-                $vid = (int) $db->insertID();
-                $db->table('product_variant_attributes')->insert([
-                    'variant_id' => $vid, 'attribute_id' => $woodFinishId, 'attribute_value_id' => $wid,
-                ]);
-                $db->table('product_variant_attributes')->insert([
-                    'variant_id' => $vid, 'attribute_id' => $chainFinishId, 'attribute_value_id' => $cid,
-                ]);
-            }
-        }
+        // --- Variants: Wood Finish × Size × Polish (price by size × polish) ---
+        $priceMatrix = [
+            '3 Feet' => ['Standard Polish' => 13500, 'Premium Polish' => 14800, 'Luxury Polish' => 18200],
+            '4 Feet' => ['Standard Polish' => 14500, 'Premium Polish' => 16000, 'Luxury Polish' => 19800],
+            '5 Feet' => ['Standard Polish' => 16300, 'Premium Polish' => 17800, 'Luxury Polish' => 21600],
+        ];
+        $variantCount = $this->buildSwingVariants(
+            $db, $pid, $sku, 'Classic Wooden Hanging Swing', "{$base}/main/classic-swing-01.webp",
+            15, $now, $woodFinishId, $sizeId, $polishId,
+            $woodValues, $sizeValues, $polishValues, $priceMatrix, 'Light Teak'
+        );
 
         // --- Customer gallery (user-uploaded) ---------------------------------
         $media = [
@@ -172,7 +163,7 @@ class Sw01ProductSeeder extends Seeder
         }
 
         echo "Seeded product #{$pid} (SW-01) with " . count($images) . " images, "
-            . (count($woodValues) * count($chainValues)) . " variants and " . count($media) . " gallery items.\n";
+            . $variantCount . " variants and " . count($media) . " gallery items.\n";
     }
 
     private function ensureAttribute($db, string $name, string $slug, int $sort): int

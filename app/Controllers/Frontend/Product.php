@@ -4,6 +4,7 @@ namespace App\Controllers\Frontend;
 
 use App\Controllers\BaseController;
 use App\Models\ProductModel;
+use App\Models\ProductOptionValueModel;
 use App\Models\ProductUserMediaModel;
 use App\Models\ProductVariantModel;
 use App\Models\ReviewModel;
@@ -28,11 +29,12 @@ class Product extends BaseController
                 'og_type'     => 'product',
                 'og_image'    => product_image($product['images'][0]['image'] ?? null),
             ],
-            'schema'   => $this->productSchema($product, $reviews),
-            'product'  => $product,
-            'reviews'  => $reviews,
-            'related'  => $related,
-            'wishIds'  => wishlist_ids(),
+            'schema'       => $this->productSchema($product, $reviews),
+            'product'      => $product,
+            'reviews'      => $reviews,
+            'related'      => $related,
+            'wishIds'      => wishlist_ids(),
+            'optionBadges' => (new ProductOptionValueModel())->badgesForProduct((int) $product['id']),
         ]);
     }
 

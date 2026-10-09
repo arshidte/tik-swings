@@ -26,8 +26,13 @@ $trust = [
 <!-- ============================ HERO (§8) ============================ -->
 <section class="relative overflow-hidden bg-ink text-bg" style="min-height:clamp(560px,80vh,860px)">
     <div class="absolute inset-0">
-        <img src="<?= base_url('assets/images/swing-banner-one-tik.webp') ?>" alt="A handcrafted teak wooden swing in a warm, light-filled Indian living room"
-             class="w-full h-full object-cover scale-105" data-parallax="0.12" fetchpriority="high" width="1920" height="1280">
+        <video class="w-full h-full object-cover scale-105" data-parallax="0.12"
+               autoplay muted loop playsinline preload="auto"
+               poster="<?= base_url('assets/video/hero-poster.jpg') ?>"
+               aria-label="A handcrafted teak wooden swing in a warm, light-filled Indian living room">
+            <source src="<?= base_url('assets/video/hero.webm') ?>" type="video/webm" media="(prefers-reduced-motion: no-preference)">
+            <source src="<?= base_url('assets/video/hero.mp4') ?>" type="video/mp4" media="(prefers-reduced-motion: no-preference)">
+        </video>
         <div class="absolute inset-0 bg-gradient-to-t from-ink/70 via-ink/20 to-transparent"></div>
     </div>
     <div class="relative container-page flex items-end" style="min-height:clamp(560px,80vh,860px)">
@@ -41,7 +46,7 @@ $trust = [
             </p>
             <div class="mt-8 flex flex-wrap gap-3 animate-fade-up" style="animation-delay:.16s">
                 <a href="<?= base_url('shop') ?>" class="btn-wood shadow-lift"><?= esc(setting('hero_cta_primary', 'Explore Swings')) ?></a>
-                <a href="<?= base_url('custom-swings') ?>" class="btn bg-bg/10 text-bg border border-bg/30 backdrop-blur hover:bg-bg/20"><?= esc(setting('hero_cta_secondary', 'Design Your Space')) ?></a>
+
             </div>
         </div>
     </div>
@@ -224,56 +229,6 @@ $igHandle = ($igUrl && preg_match('#instagram\.com/([A-Za-z0-9_.]+)#i', $igUrl, 
     </div>
 </section>
 
-<!-- ===================== CUSTOMIZATION TEASER (§15) ================= -->
-<section class="section">
-    <div class="container-page">
-        <div class="rounded-xl bg-sand p-8 sm:p-12 lg:p-16 grid lg:grid-cols-2 gap-10 items-center reveal">
-            <div>
-                <p class="eyebrow">Made to order</p>
-                <h2 class="mt-2 text-h2">Made for Your Space.</h2>
-                <p class="mt-4 text-muted max-w-md">Choose the wood, the finish, the rope and the exact size. We craft it to fit your corner — and your life.</p>
-                <a href="<?= base_url('custom-swings') ?>" class="btn-primary mt-6">Start customising</a>
-            </div>
-            <div class="grid grid-cols-2 gap-4 text-sm">
-                <?php
-                $opts = [
-                    ['Wood', 'Teak · Sheesham · Mango'],
-                    ['Finish', 'Natural · Honey · Walnut · Dark'],
-                    ['Rope', 'Natural · Beige · Black'],
-                    ['Size', 'Standard · Large · Custom'],
-                ];
-                foreach ($opts as [$k, $v]): ?>
-                    <div class="bg-surface rounded-md p-4 border border-line">
-                        <p class="font-medium"><?= esc($k) ?></p>
-                        <p class="text-muted mt-1"><?= esc($v) ?></p>
-                    </div>
-                <?php endforeach ?>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- ====================== ROOM INSPIRATION (§16) =================== -->
-<section class="section bg-surface">
-    <div class="container-page">
-        <div class="text-center max-w-2xl mx-auto mb-10 reveal">
-            <p class="eyebrow">Inspiration</p>
-            <h2 class="mt-2 text-h2">Where Will You Put Yours?</h2>
-        </div>
-        <div class="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            <?php foreach ($rooms as $i => [$slug, $name]): ?>
-                <a href="<?= base_url('shop?room=' . $slug) ?>" class="group relative overflow-hidden rounded-lg reveal" data-reveal-delay="<?= ($i % 3) * 60 ?>">
-                    <div class="aspect-[5/4] overflow-hidden bg-sand">
-                        <img src="<?= base_url('assets/images/rooms/' . $slug . '.svg') ?>" alt="<?= esc($name, 'attr') ?> swing inspiration" loading="lazy" width="1000" height="800" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105">
-                    </div>
-                    <div class="absolute inset-0 bg-gradient-to-t from-ink/60 to-transparent"></div>
-                    <h3 class="absolute bottom-4 left-4 font-display text-xl text-bg"><?= esc($name) ?></h3>
-                </a>
-            <?php endforeach ?>
-        </div>
-    </div>
-</section>
-
 <!-- ============================ REVIEWS (§17) ======================= -->
 <?php if (! empty($reviews)): ?>
 <section class="section">
@@ -305,11 +260,11 @@ $igHandle = ($igUrl && preg_match('#instagram\.com/([A-Za-z0-9_.]+)#i', $igUrl, 
 <!-- =========================== FINAL CTA (§18) ===================== -->
 <section class="relative overflow-hidden">
     <div class="absolute inset-0">
-        <img src="<?= base_url('assets/images/cta.svg') ?>" alt="" aria-hidden="true" loading="lazy" width="1920" height="1000" class="w-full h-full object-cover">
+        <img src="<?= base_url('assets/images/cta-background.jpg') ?>" alt="Child enjoying a wooden swing" aria-hidden="true" loading="lazy" width="1920" height="1000" class="w-full h-full object-cover">
         <div class="absolute inset-0 bg-ink/60"></div>
     </div>
     <div class="relative container-page py-24 sm:py-32 text-center text-bg">
-        <h2 class="font-display text-[clamp(2rem,5vw,4rem)] leading-tight max-w-3xl mx-auto reveal">Your Favourite Corner Is Waiting.</h2>
+        <h2 class="font-display text-[clamp(2rem,5vw,4rem)] leading-tight max-w-3xl mx-auto reveal text-white">Your Favourite Corner Is Waiting.</h2>
         <p class="mt-5 text-lg text-bg/80 max-w-xl mx-auto reveal">Bring home a handcrafted swing made for slow mornings, long conversations and everyday moments.</p>
         <a href="<?= base_url('shop') ?>" class="btn-wood mt-8 shadow-lift reveal">Explore the Collection</a>
     </div>

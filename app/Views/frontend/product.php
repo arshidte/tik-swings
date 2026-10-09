@@ -9,12 +9,14 @@ $inWish   = in_array((int) $p['id'], array_map('intval', $wishIds), true);
 $inStock  = $p['stock_status'] !== 'out_of_stock' && ((int) $p['stock'] > 0 || $p['stock_status'] === 'made_to_order' || ! empty($p['variants']));
 
 // Group variant attributes into selectable option groups.
+$optionBadges = $optionBadges ?? [];   // attribute_value_id => badge text (per product)
 $optionGroups = [];
 foreach ($p['variants'] as $v) {
     foreach ($v['attributes'] ?? [] as $a) {
         $optionGroups[$a['attribute']]['slug'] = $a['attribute_slug'];
         $optionGroups[$a['attribute']]['values'][$a['value']] = [
             'id' => $a['attribute_value_id'] ?? null, 'value' => $a['value'], 'swatch' => $a['swatch'] ?? null,
+            'badge' => $optionBadges[(int) ($a['attribute_value_id'] ?? 0)] ?? null,
         ];
     }
 }
@@ -120,10 +122,11 @@ $accordions = array_filter([
                             <p class="text-sm font-medium mb-2"><?= esc($groupName) ?>: <span class="text-muted" data-option-selected></span></p>
                             <div class="flex flex-wrap gap-2">
                                 <?php foreach ($group['values'] as $val): ?>
-                                    <button type="button" class="min-h-[40px] px-4 rounded-md border border-line text-sm hover:border-ink transition data-[selected=true]:border-ink data-[selected=true]:bg-ink data-[selected=true]:text-bg"
+                                    <button type="button" class="relative min-h-[40px] px-4 rounded-md border border-line text-sm hover:border-ink transition data-[selected=true]:border-ink data-[selected=true]:bg-ink data-[selected=true]:text-bg"
                                             data-option-value data-value-id="<?= (int) $val['id'] ?>" data-value-label="<?= esc($val['value'], 'attr') ?>">
                                         <?php if (! empty($val['swatch'])): ?><span class="inline-block w-3.5 h-3.5 rounded-full mr-1.5 align-middle border border-black/10" style="background:<?= esc($val['swatch'], 'attr') ?>"></span><?php endif ?>
                                         <?= esc($val['value']) ?>
+                                        <?php if (! empty($val['badge'])): ?><span class="absolute -top-2 -right-2 rounded-full bg-terracotta text-bg text-[10px] leading-none font-medium px-1.5 py-0.5 whitespace-nowrap shadow-sm pointer-events-none"><?= esc($val['badge']) ?></span><?php endif ?>
                                     </button>
                                 <?php endforeach ?>
                             </div>

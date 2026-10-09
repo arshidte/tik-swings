@@ -65,6 +65,93 @@ $action = $p ? base_url('admin/products/update/' . $p['id']) : base_url('admin/p
             <input id="images" name="images[]" type="file" accept="image/jpeg,image/png,image/webp" multiple class="block w-full text-sm text-muted file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-ink file:text-bg file:text-sm hover:file:bg-wood-dark file:cursor-pointer">
             <p class="field-help">Images are validated, re-encoded to WebP and resized automatically.</p>
         </div>
+
+        <?php
+        // ---- Build the editor's initial state from existing data ----------
+        $variants     = $variants ?? [];
+        $options      = $options ?? [];        // attribute_id => ['affects_price' => ...]
+        $optionAdjust = $optionAdjust ?? [];   // attribute_value_id => price_adjust
+        $optionBadges = $optionBadges ?? [];   // attribute_value_id => badge text
+        $attrsOut     = []; // attrKey => ['key','name','affectsPrice','values'=>[valKey => [...]]]
+        $varsOut      = [];
+        foreach ($variants as $v) {
+            $combo = [];
+            foreach ($v['attributes'] ?? [] as $a) {
+                $aid  = (int) $a['attribute_id'];
+                $vid  = (int) $a['attribute_value_id'];
+                $aKey = 'a' . $aid;
+                $vKey = 'v' . $vid;
+                if (! isset($attrsOut[$aKey])) {
+                    $attrsOut[$aKey] = [
+                        'key'          => $aKey,
+                        'name'         => $a['attribute'],
+                        'affectsPrice' => ! empty($options[$aid]['affects_price']),
+                        'values'       => [],
+                    ];
+                }
+                $attrsOut[$aKey]['values'][$vKey] = [
+                    'key'    => $vKey,
+                    'label'  => $a['value'],
+                    'swatch' => $a['swatch'],
+                    'adjust' => isset($optionAdjust[$vid]) ? (float) $optionAdjust[$vid] : 0,
+                    'badge'  => $optionBadges[$vid] ?? '',
+                ];
+                $combo[$aKey] = $vKey;
+            }
+            $varsOut[] = [
+                'key'       => 'x' . $v['id'],
+                'sku'       => $v['sku'],
+                'stock'     => (int) $v['stock'],
+                'status'    => $v['status'],
+                'isDefault' => (int) $v['is_default'] === 1,
+                'price'     => $v['price'] !== null ? (float) $v['price'] : null,
+                'combo'     => $combo,
+            ];
+        }
+        $attrsList = [];
+        foreach ($attrsOut as $a) {
+            $a['values'] = array_values($a['values']);
+            $attrsList[] = $a;
+        }
+        $variantState = [
+            'attributes' => $attrsList,
+            'variants'   => $varsOut,
+        ];
+        ?>
+        <!-- Options & Variants -->
+        <div class="bg-surface rounded-lg border border-line p-5 space-y-4" data-variant-editor>
+            <input type="hidden" name="variants_present" value="1">
+            <div class="flex items-start justify-between gap-3">
+                <div>
+                    <h2 class="font-medium">Options &amp; Variants</h2>
+                    <p class="field-help !mt-0.5">Add options like <em>Color</em> or <em>Polish</em>, then generate the purchasable variants. Each variant has its own editable <em>Price</em>. Optionally turn on <em>Affects price</em> for an option to auto-fill prices as base price + per-value adjustments when generating; you can always override any variant's price directly.</p>
+                </div>
+            </div>
+
+            <!-- Attributes -->
+            <div data-attr-list class="space-y-3"></div>
+            <button type="button" data-add-attribute class="btn-wood text-sm">+ Add option</button>
+
+            <!-- Variants -->
+            <div class="border-t border-line pt-4">
+                <div class="flex items-center justify-between gap-3 mb-3">
+                    <h3 class="text-sm font-medium">Variants <span class="text-muted" data-variant-count></span></h3>
+                    <div class="flex gap-2">
+                        <button type="button" data-generate-variants class="btn-wood text-sm">Generate from options</button>
+                        <button type="button" data-add-variant class="text-sm px-3 py-2 rounded-md border border-line hover:border-ink">+ Row</button>
+                    </div>
+                </div>
+                <p class="field-help -mt-1 mb-3" data-variant-empty>No variants yet. Add options above and click <strong>Generate from options</strong>.</p>
+                <div class="overflow-x-auto">
+                    <div data-variant-rows class="min-w-full space-y-2"></div>
+                </div>
+            </div>
+
+            <datalist id="attr-name-suggestions">
+                <?php foreach (($attributeNames ?? []) as $an): ?><option value="<?= esc($an, 'attr') ?>"></option><?php endforeach ?>
+            </datalist>
+            <script type="application/json" data-variant-state><?= json_encode($variantState, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?></script>
+        </div>
     </div>
 
     <!-- Sidebar -->
@@ -106,6 +193,14 @@ $action = $p ? base_url('admin/products/update/' . $p['id']) : base_url('admin/p
         <button type="submit" class="btn-primary btn-block">Save Product</button>
     </div>
 </form>
+
+<?php if ($p): ?>
+    <form method="post" action="<?= base_url('admin/products/delete/' . $p['id']) ?>"
+          onsubmit="return confirm('Archive this product? It will be hidden from the catalogue but kept in the database.')"
+          class="mt-4 flex justify-end">
+        <?= csrf_field() ?><button type="submit" class="text-sm text-danger hover:underline">Archive product</button>
+    </form>
+<?php endif ?>
 
 <?php // ============ Customer Gallery (user-uploaded media) ============ ?>
 <?php if ($p): $userMedia = $userMedia ?? []; ?>
@@ -169,4 +264,8 @@ $action = $p ? base_url('admin/products/update/' . $p['id']) : base_url('admin/p
     <?php endif ?>
 </section>
 <?php endif ?>
+<?= $this->endSection() ?>
+
+<?= $this->section('scripts') ?>
+<script src="<?= base_url('assets/js/admin_variants.js') ?>?v=5"></script>
 <?= $this->endSection() ?>

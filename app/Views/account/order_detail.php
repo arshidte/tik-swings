@@ -65,6 +65,16 @@ $ship = $order['shipping_address'] ? json_decode($order['shipping_address'], tru
                 <p class="text-xs text-muted mt-4">Payment: <?= esc(ucfirst($order['payment_method'] ?? 'N/A')) ?> · <?= esc(ucfirst($order['payment_status'])) ?></p>
             </div>
 
+            <?php if ($shipment): ?>
+                <div class="card p-6">
+                    <h2 class="font-display text-lg mb-3">Track your order</h2>
+                    <p class="text-sm"><?= esc(courier_label($shipment['carrier'])) ?></p>
+                    <p class="text-sm text-muted">Tracking #: <?= esc($shipment['tracking_number']) ?></p>
+                    <p class="text-sm text-muted mb-4">Mobile: <?= esc($shipment['mobile']) ?></p>
+                    <a href="<?= esc(courier_tracking_url($shipment['carrier']), 'attr') ?>" target="_blank" rel="noopener" class="btn-outline btn-block">Track your order</a>
+                </div>
+            <?php endif ?>
+
             <?php if ($ship): ?>
                 <div class="card p-6">
                     <h2 class="font-display text-lg mb-3">Shipping to</h2>

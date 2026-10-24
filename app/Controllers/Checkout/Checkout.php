@@ -18,6 +18,14 @@ class Checkout extends BaseController
         return (int) session()->get('user_id');
     }
 
+    /** Current user id, or null for a guest checkout. */
+    private function uidOrNull(): ?int
+    {
+        $id = $this->uid();
+
+        return $id > 0 ? $id : null;
+    }
+
     public function index()
     {
         $snapshot = (new CartService())->snapshot();
@@ -29,7 +37,7 @@ class Checkout extends BaseController
             'meta'      => ['title' => 'Checkout — ' . store_name()],
             'snapshot'  => $snapshot,
             'addresses' => (new AddressModel())->forUser($this->uid()),
-            'user'      => (new UserModel())->find($this->uid()),
+            'user'      => (new UserModel())->find($this->uid()) ?: [],
             'methods'   => (new PaymentManager())->available(),
             'bodyClass' => 'bg-sand/30',
         ]);
@@ -68,23 +76,33 @@ class Checkout extends BaseController
         ];
         $customer = ['email' => $this->request->getPost('email'), 'phone' => $shipping['phone']];
 
-        // Optionally save the address to the account.
-        if ($this->request->getPost('save_address')) {
+        // Optionally save the address to the account (logged-in users only).
+        if ($this->uidOrNull() !== null && $this->request->getPost('save_address')) {
             (new AddressModel())->insert(['user_id' => $this->uid()] + $shipping);
         }
 
         try {
             $order = (new OrderService())->createFromCart(
-                $this->uid(), $customer, $shipping, $method->key(), $this->request->getPost('notes')
+                $this->uidOrNull(), $customer, $shipping, $method->key(), $this->request->getPost('notes')
             );
         } catch (\RuntimeException $e) {
             return redirect()->back()->withInput()->with('error', $e->getMessage());
         }
 
+        // Remember the order in this session so a guest can view its
+        // confirmation and later claim it into a new account.
+        $this->rememberOrder($order['order_number']);
+
         // Online payment: hand off to the gateway (intent).
         if ($method->isOnline()) {
             session()->set('pending_order', $order['order_number']);
-            $intent = $method->createIntent($order);
+            try {
+                $intent = $method->createIntent($order);
+            } catch (\RuntimeException $e) {
+                session()->remove('pending_order');
+
+                return redirect()->to(site_url('checkout'))->with('error', $e->getMessage());
+            }
 
             return view('checkout/pay', [
                 'meta'   => ['title' => 'Complete Payment — ' . store_name()],
@@ -126,15 +144,111 @@ class Checkout extends BaseController
 
     public function confirmation(string $number)
     {
-        $order = (new OrderModel())->where('order_number', $number)->where('user_id', $this->uid())->first();
-        if (! $order) {
+        $order = (new OrderModel())->findByNumber($number);
+        if (! $order || ! $this->ownsOrder($order)) {
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
         }
 
+        // Post-purchase account offer, for guest orders only.
+        $accountState = 'none'; // logged-in buyers already have an account
+        if (! is_logged_in() && empty($order['user_id'])) {
+            $accountState = (new UserModel())->findByEmail($order['email']) ? 'existing' : 'create';
+        }
+
         return view('checkout/confirmation', [
-            'meta'  => ['title' => 'Order Confirmed — ' . store_name()],
-            'order' => $order,
-            'items' => (new OrderItemModel())->forOrder((int) $order['id']),
+            'meta'         => ['title' => 'Order Confirmed — ' . store_name()],
+            'order'        => $order,
+            'items'        => (new OrderItemModel())->forOrder((int) $order['id']),
+            'accountState' => $accountState,
         ]);
+    }
+
+    /**
+     * Create an account for a guest who just placed an order, link their
+     * guest order(s) to it, and sign them in. Email comes from the order
+     * (not the form) so it can't be spoofed.
+     */
+    public function claimAccount()
+    {
+        $rules = [
+            'order_number'     => 'required',
+            'password'         => 'required|min_length[8]',
+            'password_confirm' => 'required|matches[password]',
+        ];
+        $messages = [
+            'password'         => ['min_length' => 'Password must be at least 8 characters.'],
+            'password_confirm' => ['matches' => 'Passwords do not match.'],
+        ];
+        if (! $this->validate($rules, $messages)) {
+            return redirect()->back()->with('errors', $this->validator->getErrors());
+        }
+
+        $number = (string) $this->request->getPost('order_number');
+        $order  = (new OrderModel())->findByNumber($number);
+
+        // Only the guest who placed this order (this session) may claim it.
+        if (! $order || ! $this->ownsOrder($order) || ! empty($order['user_id'])) {
+            return redirect()->to(site_url('checkout/confirmation/' . $number))
+                ->with('error', 'This order can no longer be linked to a new account.');
+        }
+
+        $users = new UserModel();
+        if ($users->findByEmail($order['email'])) {
+            return redirect()->to(site_url('login'))
+                ->with('info', 'You already have an account with this email — please sign in to see your order.');
+        }
+
+        // Derive a name from the shipping address.
+        $ship  = $order['shipping_address'] ? json_decode($order['shipping_address'], true) : [];
+        $full  = trim($ship['full_name'] ?? '');
+        $first = $full !== '' ? strtok($full, ' ') : 'Customer';
+        $last  = trim((string) substr($full, strlen($first)));
+
+        $userId = $users->insert([
+            'first_name'    => $first,
+            'last_name'     => $last !== '' ? $last : null,
+            'email'         => strtolower(trim($order['email'])),
+            'phone'         => $order['phone'],
+            'password_hash' => $users->hashPassword((string) $this->request->getPost('password')),
+            'role'          => 'customer',
+            'status'        => 'active',
+        ]);
+
+        // Link this order and any other guest orders that used the same email.
+        (new OrderModel())->where('email', $order['email'])->where('user_id', null)
+            ->set(['user_id' => $userId])->update();
+
+        // Sign in using the same session contract as Auth::establishSession.
+        $user = $users->find($userId);
+        session()->set([
+            'user_id'    => $user['id'],
+            'user_name'  => trim($user['first_name'] . ' ' . ($user['last_name'] ?? '')),
+            'user_email' => $user['email'],
+            'user_role'  => $user['role'],
+        ]);
+
+        return redirect()->to(site_url('account/orders/' . $number))
+            ->with('success', 'Your account is ready — welcome to ' . store_name() . '.');
+    }
+
+    /** Record an order placed in this session (for guest confirmation access). */
+    private function rememberOrder(string $number): void
+    {
+        $mine = session()->get('my_orders') ?? [];
+        if (! in_array($number, $mine, true)) {
+            $mine[] = $number;
+            session()->set('my_orders', $mine);
+        }
+    }
+
+    /** A buyer owns an order if logged in as its user, or placed it this session. */
+    private function ownsOrder(array $order): bool
+    {
+        $uid = $this->uidOrNull();
+        if ($uid !== null && (int) $order['user_id'] === $uid) {
+            return true;
+        }
+
+        return in_array($order['order_number'], session()->get('my_orders') ?? [], true);
     }
 }

@@ -49,11 +49,14 @@ $routes->post('wishlist/toggle', 'Frontend\Wishlist::toggle');
 // ---------------------------------------------------------------------------
 // Checkout & orders (§30–§33)
 // ---------------------------------------------------------------------------
-$routes->group('checkout', ['filter' => 'auth'], static function ($routes) {
+// Guest checkout is allowed; ownership of each order is enforced in the
+// controller (logged-in user match, or the order placed in this session).
+$routes->group('checkout', static function ($routes) {
     $routes->get('/', 'Checkout\Checkout::index');
     $routes->post('place', 'Checkout\Checkout::place');
     $routes->post('payment/verify', 'Checkout\Checkout::verifyPayment');
     $routes->get('confirmation/(:segment)', 'Checkout\Checkout::confirmation/$1');
+    $routes->post('claim-account', 'Checkout\Checkout::claimAccount'); // post-purchase sign-up
 });
 
 // ---------------------------------------------------------------------------
@@ -101,6 +104,7 @@ $routes->group('admin', ['filter' => 'admin'], static function ($routes) {
     $routes->get('orders', 'Admin\Orders::index');
     $routes->get('orders/(:num)', 'Admin\Orders::show/$1');
     $routes->post('orders/status/(:num)', 'Admin\Orders::updateStatus/$1');
+    $routes->post('orders/shipment/(:num)', 'Admin\Orders::saveShipment/$1');
     $routes->get('customers', 'Admin\Customers::index');
     $routes->get('reviews', 'Admin\Reviews::index');
     $routes->post('reviews/moderate/(:num)', 'Admin\Reviews::moderate/$1');

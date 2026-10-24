@@ -6,6 +6,7 @@ use App\Controllers\BaseController;
 use App\Models\OrderItemModel;
 use App\Models\OrderModel;
 use App\Models\OrderStatusHistoryModel;
+use App\Models\ShipmentModel;
 use App\Services\OrderService;
 
 class Orders extends BaseController
@@ -39,8 +40,31 @@ class Orders extends BaseController
             'order'    => $order,
             'items'    => (new OrderItemModel())->forOrder($id),
             'history'  => (new OrderStatusHistoryModel())->forOrder($id),
+            'shipment' => (new ShipmentModel())->forOrder($id),
             'statuses' => ['pending', 'confirmed', 'processing', 'shipped', 'out_for_delivery', 'delivered', 'cancelled', 'refunded'],
+            'couriers' => ['a1parcel' => 'A1 Parcel Service', 'apscargo' => 'APS Cargo'],
         ]);
+    }
+
+    public function saveShipment(int $id)
+    {
+        $order = (new OrderModel())->find($id);
+        if (! $order) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
+        $carrier        = $this->request->getPost('carrier');
+        $trackingNumber = trim((string) $this->request->getPost('tracking_number'));
+        $mobile         = trim((string) $this->request->getPost('mobile'));
+
+        if (! in_array($carrier, ['a1parcel', 'apscargo'], true) || $trackingNumber === '' || $mobile === '') {
+            return redirect()->back()->with('error', 'Courier, tracking number and mobile are all required.');
+        }
+
+        (new ShipmentModel())->saveForOrder($id, $carrier, $trackingNumber, $mobile);
+        (new OrderService())->updateStatus($id, 'shipped', 'Shipped via ' . courier_label($carrier) . ', tracking #' . $trackingNumber, (int) session()->get('user_id'));
+
+        return redirect()->to(site_url('admin/orders/' . $id))->with('success', 'Shipping details saved.');
     }
 
     public function updateStatus(int $id)

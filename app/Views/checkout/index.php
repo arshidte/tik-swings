@@ -24,6 +24,9 @@ $errors  = session('errors') ?? [];
             <section class="card p-6">
                 <h2 class="font-display text-xl mb-1">Shipping Address</h2>
                 <p class="text-sm text-muted mb-5">Where should we deliver your swing?</p>
+                <?php if (! is_logged_in()): ?>
+                    <p class="text-sm text-muted mb-5">Checking out as a guest. Already have an account? <a href="<?= base_url('login') ?>" class="text-wood underline">Sign in</a> for a faster checkout.</p>
+                <?php endif ?>
 
                 <?php if (! empty($addresses)): ?>
                     <div class="grid sm:grid-cols-2 gap-3 mb-6" data-saved-addresses>
@@ -44,15 +47,17 @@ $errors  = session('errors') ?? [];
                 <?php endif ?>
 
                 <div class="grid sm:grid-cols-2 gap-4" data-address-fields>
-                    <div><label class="field-label" for="full_name">Full name</label><input id="full_name" name="full_name" class="field-input" required value="<?= esc(old('full_name', $default['full_name'] ?? $user['first_name'] . ' ' . $user['last_name'])) ?>"><?php if (isset($errors['full_name'])): ?><p class="field-error"><?= esc($errors['full_name']) ?></p><?php endif ?></div>
-                    <div><label class="field-label" for="phone">Phone</label><input id="phone" name="phone" type="tel" inputmode="tel" class="field-input" required value="<?= esc(old('phone', $default['phone'] ?? $user['phone'])) ?>"><?php if (isset($errors['phone'])): ?><p class="field-error"><?= esc($errors['phone']) ?></p><?php endif ?></div>
-                    <div class="sm:col-span-2"><label class="field-label" for="email">Email</label><input id="email" name="email" type="email" class="field-input" required value="<?= esc(old('email', $user['email'])) ?>"><?php if (isset($errors['email'])): ?><p class="field-error"><?= esc($errors['email']) ?></p><?php endif ?></div>
+                    <div><label class="field-label" for="full_name">Full name</label><input id="full_name" name="full_name" class="field-input" required value="<?= esc(old('full_name', $default['full_name'] ?? trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? '')))) ?>"><?php if (isset($errors['full_name'])): ?><p class="field-error"><?= esc($errors['full_name']) ?></p><?php endif ?></div>
+                    <div><label class="field-label" for="phone">Phone</label><input id="phone" name="phone" type="tel" inputmode="tel" class="field-input" required value="<?= esc(old('phone', $default['phone'] ?? ($user['phone'] ?? ''))) ?>"><?php if (isset($errors['phone'])): ?><p class="field-error"><?= esc($errors['phone']) ?></p><?php endif ?></div>
+                    <div class="sm:col-span-2"><label class="field-label" for="email">Email</label><input id="email" name="email" type="email" class="field-input" required value="<?= esc(old('email', $user['email'] ?? '')) ?>"><?php if (isset($errors['email'])): ?><p class="field-error"><?= esc($errors['email']) ?></p><?php endif ?></div>
                     <div class="sm:col-span-2"><label class="field-label" for="line1">Address</label><input id="line1" name="line1" class="field-input" required value="<?= esc(old('line1', $default['line1'] ?? '')) ?>"><?php if (isset($errors['line1'])): ?><p class="field-error"><?= esc($errors['line1']) ?></p><?php endif ?></div>
                     <div class="sm:col-span-2"><label class="field-label" for="line2">Apartment, landmark (optional)</label><input id="line2" name="line2" class="field-input" value="<?= esc(old('line2', $default['line2'] ?? '')) ?>"></div>
                     <div><label class="field-label" for="city">City</label><input id="city" name="city" class="field-input" required value="<?= esc(old('city', $default['city'] ?? '')) ?>"><?php if (isset($errors['city'])): ?><p class="field-error"><?= esc($errors['city']) ?></p><?php endif ?></div>
                     <div><label class="field-label" for="state">State</label><input id="state" name="state" class="field-input" required value="<?= esc(old('state', $default['state'] ?? '')) ?>"><?php if (isset($errors['state'])): ?><p class="field-error"><?= esc($errors['state']) ?></p><?php endif ?></div>
                     <div><label class="field-label" for="pincode">Pincode</label><input id="pincode" name="pincode" inputmode="numeric" class="field-input" required value="<?= esc(old('pincode', $default['pincode'] ?? '')) ?>"><?php if (isset($errors['pincode'])): ?><p class="field-error"><?= esc($errors['pincode']) ?></p><?php endif ?></div>
-                    <label class="sm:col-span-2 flex items-center gap-2.5 text-sm"><input type="checkbox" name="save_address" value="1" class="w-4 h-4 rounded border-line text-wood focus:ring-wood/30"> Save this address to my account</label>
+                    <?php if (is_logged_in()): ?>
+                        <label class="sm:col-span-2 flex items-center gap-2.5 text-sm"><input type="checkbox" name="save_address" value="1" class="w-4 h-4 rounded border-line text-wood focus:ring-wood/30"> Save this address to my account</label>
+                    <?php endif ?>
                 </div>
             </section>
 

@@ -41,16 +41,63 @@ class RazorpayPaymentService implements PaymentServiceInterface
             throw new \RuntimeException('Online payment is not configured yet.');
         }
 
-        // Live implementation would POST to https://api.razorpay.com/v1/orders
-        // with amount (in paise), currency and receipt, returning the gateway
-        // order id. Kept isolated so the HTTP client is the only thing to add.
+        $amount   = (int) round($order['total'] * 100); // paise
+        $currency = $order['currency'] ?? 'INR';
+        if ($amount < 100) {
+            throw new \RuntimeException('Order amount is below the minimum chargeable value.');
+        }
+
+        // Create the order at Razorpay (POST /v1/orders) and hand the gateway
+        // order id back to the browser so Checkout opens in "Orders" mode and the
+        // callback returns a razorpay_order_id we can verify by signature.
+        $gatewayOrderId = $this->createGatewayOrder($amount, $currency, (string) $order['order_number']);
+
         return [
-            'method'    => 'razorpay',
-            'key'       => $this->keyId,
-            'amount'    => (int) round($order['total'] * 100),
-            'currency'  => $order['currency'] ?? 'INR',
-            'receipt'   => $order['order_number'],
+            'method'           => 'razorpay',
+            'key'              => $this->keyId,
+            'amount'           => $amount,
+            'currency'         => $currency,
+            'receipt'          => $order['order_number'],
+            'gateway_order_id' => $gatewayOrderId,
         ];
+    }
+
+    /**
+     * POST to https://api.razorpay.com/v1/orders and return the gateway order id.
+     *
+     * @throws \RuntimeException on authentication failure or any API error.
+     */
+    private function createGatewayOrder(int $amount, string $currency, string $receipt): string
+    {
+        $client = \Config\Services::curlrequest([
+            'baseURI'     => 'https://api.razorpay.com/v1/',
+            'http_errors' => false, // inspect non-2xx responses ourselves
+            'timeout'     => 20,
+        ]);
+
+        $response = $client->post('orders', [
+            'auth' => [$this->keyId, $this->keySecret], // HTTP Basic: key_id:key_secret
+            'json' => [
+                'amount'   => $amount,
+                'currency' => $currency,
+                'receipt'  => $receipt,
+            ],
+        ]);
+
+        $status = $response->getStatusCode();
+        $body   = json_decode((string) $response->getBody(), true) ?: [];
+
+        if ($status === 401) {
+            log_message('error', 'Razorpay auth failed creating order: {d}', ['d' => json_encode($body)]);
+            throw new \RuntimeException('Payment gateway authentication failed. Please contact support.');
+        }
+        if ($status < 200 || $status >= 300 || empty($body['id'])) {
+            $reason = $body['error']['description'] ?? ('HTTP ' . $status);
+            log_message('error', 'Razorpay order creation failed: {r} {d}', ['r' => $reason, 'd' => json_encode($body)]);
+            throw new \RuntimeException('We could not start the payment. Please try again.');
+        }
+
+        return (string) $body['id'];
     }
 
     /**

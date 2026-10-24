@@ -53,6 +53,25 @@
             </form>
         </div>
         <div class="bg-surface rounded-lg border border-line p-5">
+            <h2 class="font-medium mb-3">Courier &amp; Tracking</h2>
+            <?php if ($shipment): ?>
+                <p class="text-sm"><?= esc(courier_label($shipment['carrier'])) ?></p>
+                <p class="text-sm text-muted">AWB/Tracking #: <?= esc($shipment['tracking_number']) ?></p>
+                <p class="text-sm text-muted">Mobile: <?= esc($shipment['mobile']) ?></p>
+            <?php endif ?>
+            <form method="post" action="<?= base_url('admin/orders/shipment/' . $order['id']) ?>" class="space-y-3 mt-3">
+                <?= csrf_field() ?>
+                <select name="carrier" class="field-input">
+                    <?php foreach ($couriers as $value => $label): ?>
+                        <option value="<?= esc($value) ?>" <?= ($shipment['carrier'] ?? '') === $value ? 'selected' : '' ?>><?= esc($label) ?></option>
+                    <?php endforeach ?>
+                </select>
+                <input name="tracking_number" class="field-input" placeholder="Tracking / AWB number" value="<?= esc($shipment['tracking_number'] ?? '') ?>" required>
+                <input name="mobile" class="field-input" placeholder="Mobile number" value="<?= esc($shipment['mobile'] ?? '') ?>" required>
+                <button class="btn-primary btn-block btn-sm"><?= $shipment ? 'Update' : 'Save & mark shipped' ?></button>
+            </form>
+        </div>
+        <div class="bg-surface rounded-lg border border-line p-5">
             <h2 class="font-medium mb-3">Customer</h2>
             <p class="text-sm"><?= esc($order['email']) ?></p>
             <p class="text-sm text-muted"><?= esc($order['phone']) ?></p>

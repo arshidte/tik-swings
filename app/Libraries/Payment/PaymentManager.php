@@ -20,9 +20,9 @@ class PaymentManager
             $methods[$razorpay->key()] = $razorpay;
         }
 
-        // COD is always available as a fallback so the store works out of the box.
-        $cod = new CodPaymentService();
-        $methods[$cod->key()] = $cod;
+        // COD disabled for now — re-enable by uncommenting this block.
+        // $cod = new CodPaymentService();
+        // $methods[$cod->key()] = $cod;
 
         return $methods;
     }

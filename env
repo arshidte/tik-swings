@@ -67,3 +67,11 @@
 #--------------------------------------------------------------------
 
 # logger.threshold = 4
+
+#--------------------------------------------------------------------
+# PAYMENTS — RAZORPAY
+#--------------------------------------------------------------------
+# Copy to .env and fill with your keys. KEY_SECRET is server-only.
+
+# RAZORPAY_KEY_ID = rzp_test_xxxxxxxxxxxxxx
+# RAZORPAY_KEY_SECRET = xxxxxxxxxxxxxxxxxxxxxxxx

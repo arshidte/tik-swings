@@ -21,7 +21,7 @@ class OrderService
      *
      * @throws \RuntimeException on empty cart or stock failure.
      */
-    public function createFromCart(int $userId, array $customer, array $shipping, string $paymentMethod, ?string $note = null): array
+    public function createFromCart(?int $userId, array $customer, array $shipping, string $paymentMethod, ?string $note = null): array
     {
         $cart     = new CartService();
         $snapshot = $cart->snapshot();

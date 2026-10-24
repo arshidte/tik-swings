@@ -15,7 +15,7 @@
                 <?= csrf_field() ?>
                 <div>
                     <label class="field-label" for="email">Email</label>
-                    <input id="email" name="email" type="email" autocomplete="email" class="field-input" required>
+                    <input id="email" name="email" type="email" autocomplete="email" class="field-input" required value="<?= esc(old('email', service('request')->getGet('email') ?? ''), 'attr') ?>">
                 </div>
                 <button type="submit" class="btn-primary btn-block">Send reset link</button>
             </form>

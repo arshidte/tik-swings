@@ -7,6 +7,7 @@ use App\Models\AddressModel;
 use App\Models\OrderItemModel;
 use App\Models\OrderModel;
 use App\Models\OrderStatusHistoryModel;
+use App\Models\ShipmentModel;
 use App\Models\UserModel;
 
 class Account extends BaseController
@@ -49,9 +50,10 @@ class Account extends BaseController
         return view('account/order_detail', [
             'meta'    => ['title' => 'Order ' . $order['order_number'] . ' — ' . store_name()],
             'order'   => $order,
-            'items'   => (new OrderItemModel())->forOrder((int) $order['id']),
-            'history' => (new OrderStatusHistoryModel())->forOrder((int) $order['id']),
-            'active'  => 'orders',
+            'items'    => (new OrderItemModel())->forOrder((int) $order['id']),
+            'history'  => (new OrderStatusHistoryModel())->forOrder((int) $order['id']),
+            'shipment' => (new ShipmentModel())->forOrder((int) $order['id']),
+            'active'   => 'orders',
         ]);
     }
 

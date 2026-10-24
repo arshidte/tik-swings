@@ -39,8 +39,55 @@
         <?php endif ?>
     </div>
 
+    <?php if (($accountState ?? 'none') === 'create'): ?>
+        <?php $errors = session('errors') ?? []; ?>
+        <div class="card p-6 mt-6 border border-wood/20 bg-sand/30">
+            <h2 class="font-display text-lg mb-1">Save your details for next time</h2>
+            <p class="text-sm text-muted mb-4">Set a password to track this order and check out faster later.</p>
+            <?php if (session('error')): ?>
+                <div role="alert" class="mb-4 rounded-md bg-danger/10 text-danger px-4 py-3 text-sm"><?= esc(session('error')) ?></div>
+            <?php endif ?>
+            <form method="post" action="<?= base_url('checkout/claim-account') ?>" class="space-y-4">
+                <?= csrf_field() ?>
+                <input type="hidden" name="order_number" value="<?= esc($order['order_number'], 'attr') ?>">
+                <div class="grid sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="field-label" for="acc_email">Email</label>
+                        <input id="acc_email" type="email" class="field-input bg-line/30" value="<?= esc($order['email'], 'attr') ?>" readonly>
+                    </div>
+                    <div>
+                        <label class="field-label" for="acc_phone">Phone</label>
+                        <input id="acc_phone" type="tel" class="field-input bg-line/30" value="<?= esc($order['phone'], 'attr') ?>" readonly>
+                    </div>
+                    <div>
+                        <label class="field-label" for="acc_password">Password</label>
+                        <input id="acc_password" name="password" type="password" class="field-input" required minlength="8" autocomplete="new-password">
+                        <?php if (isset($errors['password'])): ?><p class="field-error"><?= esc($errors['password']) ?></p><?php endif ?>
+                    </div>
+                    <div>
+                        <label class="field-label" for="acc_password_confirm">Confirm password</label>
+                        <input id="acc_password_confirm" name="password_confirm" type="password" class="field-input" required minlength="8" autocomplete="new-password">
+                        <?php if (isset($errors['password_confirm'])): ?><p class="field-error"><?= esc($errors['password_confirm']) ?></p><?php endif ?>
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary btn-block">Create my account</button>
+            </form>
+        </div>
+    <?php elseif (($accountState ?? 'none') === 'existing'): ?>
+        <div class="card p-6 mt-6 border border-wood/20 bg-sand/30 text-center">
+            <h2 class="font-display text-lg mb-1">You already have an account</h2>
+            <p class="text-sm text-muted mb-4">Sign in with <span class="text-ink"><?= esc($order['email']) ?></span> to track this order.</p>
+            <div class="flex flex-wrap gap-3 justify-center">
+                <a href="<?= base_url('login') ?>" class="btn-primary">Sign in</a>
+                <a href="<?= base_url('forgot-password?email=' . rawurlencode($order['email'])) ?>" class="btn-outline">Forgot your password?</a>
+            </div>
+        </div>
+    <?php endif ?>
+
     <div class="flex flex-wrap gap-3 justify-center mt-8">
-        <a href="<?= base_url('account/orders/' . $order['order_number']) ?>" class="btn-primary">Track your order</a>
+        <?php if (is_logged_in()): ?>
+            <a href="<?= base_url('account/orders/' . $order['order_number']) ?>" class="btn-primary">Track your order</a>
+        <?php endif ?>
         <a href="<?= base_url('shop') ?>" class="btn-outline">Continue shopping</a>
     </div>
 </div>

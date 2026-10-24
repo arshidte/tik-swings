@@ -132,6 +132,28 @@ if (! function_exists('order_status_class')) {
     }
 }
 
+if (! function_exists('courier_label')) {
+    function courier_label(?string $carrier): string
+    {
+        return match ($carrier) {
+            'a1parcel' => 'A1 Parcel Service',
+            'apscargo' => 'APS Cargo',
+            default    => (string) $carrier,
+        };
+    }
+}
+
+if (! function_exists('courier_tracking_url')) {
+    function courier_tracking_url(?string $carrier): string
+    {
+        return match ($carrier) {
+            'a1parcel' => 'https://a1parcel.in/tracking',
+            'apscargo' => 'https://www.apscargo.com/',
+            default    => '#',
+        };
+    }
+}
+
 if (! function_exists('truncate_words')) {
     function truncate_words(?string $text, int $words = 24): string
     {

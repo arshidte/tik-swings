@@ -26,14 +26,27 @@ document.querySelector('[data-pay-now]').addEventListener('click', () => {
         description: 'Order ' + intent.receipt,
         order_id: intent.gateway_order_id || undefined,
         handler: async (response) => {
-            const res = await fetch(window.SG.baseUrl + 'checkout/payment/verify', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-                body: JSON.stringify({ ...response, order_number: intent.receipt }),
-            }).then((r) => r.json());
-            if (res.success) window.location.href = res.data.redirect;
-            else alert(res.message || 'Payment could not be verified.');
+            try {
+                const res = await fetch(window.SG.baseUrl + 'checkout/payment/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                    body: JSON.stringify({ ...response, order_number: intent.receipt }),
+                }).then((r) => r.json());
+                if (res.success) window.location.href = res.data.redirect;
+                else alert(res.message || 'Payment could not be verified. If money was debited it will be refunded.');
+            } catch (e) {
+                alert('We could not confirm your payment. Please contact support with your order number.');
+            }
         },
+        modal: {
+            // User closed the Razorpay window without paying.
+            ondismiss: () => alert('Payment cancelled. Your order is saved — you can pay again from here.'),
+        },
+    });
+    // Gateway reported the payment attempt failed (card declined, etc.).
+    rzp.on('payment.failed', (resp) => {
+        const err = (resp && resp.error) || {};
+        alert('Payment failed: ' + (err.description || 'please try a different method.'));
     });
     rzp.open();
 });

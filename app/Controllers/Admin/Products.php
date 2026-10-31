@@ -4,6 +4,7 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Models\CategoryModel;
+use App\Models\ProductAddonModel;
 use App\Models\ProductAttributeModel;
 use App\Models\ProductAttributeValueModel;
 use App\Models\ProductImageModel;
@@ -53,6 +54,7 @@ class Products extends BaseController
             'optionAdjust'   => [],
             'optionBadges'   => [],
             'attributeNames' => (new ProductAttributeModel())->names(),
+            'addons'         => [],
         ]);
     }
 
@@ -74,7 +76,41 @@ class Products extends BaseController
             'optionAdjust'   => (new ProductOptionValueModel())->forProduct($id),
             'optionBadges'   => (new ProductOptionValueModel())->badgesForProduct($id),
             'attributeNames' => (new ProductAttributeModel())->names(),
+            'addons'         => (new ProductAddonModel())->forProductAdmin($id),
         ]);
+    }
+
+    /**
+     * Product lookup for the add-on picker. Returns up to 10 matches by name
+     * or SKU, excluding the product being edited.
+     */
+    public function search()
+    {
+        $q       = trim((string) $this->request->getGet('q'));
+        $exclude = (int) $this->request->getGet('exclude');
+        if (mb_strlen($q) < 2) {
+            return $this->jsonSuccess('', ['items' => []]);
+        }
+
+        $model = $this->products->select('id, name, sku, price, status, has_variants')
+            ->groupStart()->like('name', $q)->orLike('sku', $q)->groupEnd()
+            ->orderBy('name', 'ASC');
+        if ($exclude > 0) {
+            $model->where('id !=', $exclude);
+        }
+        $rows = $this->products->withPrimaryImage($model->findAll(10));
+
+        $items = array_map(static fn ($r) => [
+            'id'           => (int) $r['id'],
+            'name'         => $r['name'],
+            'sku'          => $r['sku'],
+            'price'        => price($r['price']),
+            'status'       => $r['status'],
+            'has_variants' => (int) $r['has_variants'] === 1,
+            'image'        => product_image($r['image'] ?? null),
+        ], $rows);
+
+        return $this->jsonSuccess('', ['items' => $items]);
     }
 
     public function store()
@@ -112,6 +148,9 @@ class Products extends BaseController
 
         // Persist attributes / values / variants from the editor.
         $this->saveVariants($id);
+
+        // Persist "Complete your swing" add-on mapping.
+        $this->saveAddons($id);
 
         cache()->delete('categories_nav');
         (new CategoryModel())->clearCache();
@@ -333,6 +372,32 @@ class Products extends BaseController
 
         // 5. Flag whether the product carries variants ----------------------
         $this->products->update($productId, ['has_variants' => $payloads ? 1 : 0]);
+    }
+
+    /**
+     * Persist the add-on picker: addons[n][product_id], addons[n][preselected]
+     * in display order. No-op unless the form rendered the section.
+     */
+    private function saveAddons(int $productId): void
+    {
+        if (! $this->request->getPost('addons_present')) {
+            return;
+        }
+
+        $rows = [];
+        foreach ((array) $this->request->getPost('addons') as $row) {
+            $addonId = (int) ($row['product_id'] ?? 0);
+            if ($addonId > 0) {
+                $rows[] = ['addon_product_id' => $addonId, 'is_preselected' => ! empty($row['preselected'])];
+            }
+        }
+        // Only map products that actually exist.
+        if ($rows !== []) {
+            $valid = array_map('intval', $this->products->whereIn('id', array_column($rows, 'addon_product_id'))->findColumn('id') ?? []);
+            $rows  = array_values(array_filter($rows, static fn ($r) => in_array($r['addon_product_id'], $valid, true)));
+        }
+
+        (new ProductAddonModel())->replaceForProduct($productId, $rows);
     }
 
     private function handleUploads(int $productId): void

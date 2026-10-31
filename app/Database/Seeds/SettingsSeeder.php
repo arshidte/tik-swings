@@ -11,7 +11,7 @@ class SettingsSeeder extends Seeder
         $now = date('Y-m-d H:i:s');
         $settings = [
             // Store identity
-            'store_name'        => 'Swing & Grain',
+            'store_name'        => 'TIK Swings',
             'store_tagline'     => 'Handcrafted wooden swings for the moments that matter.',
             'store_email'       => 'hello@swingandgrain.in',
             'store_phone'       => '+91 90000 00000',
@@ -29,7 +29,7 @@ class SettingsSeeder extends Seeder
             'social_youtube'    => 'https://youtube.com',
 
             // SEO defaults
-            'seo_title'         => 'Swing & Grain — Handcrafted Wooden Swings & Jhulas',
+            'seo_title'         => 'TIK Swings — Handcrafted Wooden Swings & Jhulas',
             'seo_description'   => 'Premium handcrafted wooden swings and jhulas made from solid teak and sheesham. Custom sizes, pan-India delivery and expert installation.',
             'og_image'          => 'assets/images/hero.svg',
 

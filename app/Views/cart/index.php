@@ -16,11 +16,13 @@
     <?php else: ?>
         <div class="lg:grid lg:grid-cols-[1fr_360px] lg:gap-10 items-start">
             <!-- Items -->
+            <div>
             <div class="divide-y divide-line border-y border-line" data-cart-lines>
-                <?php foreach ($snapshot['items'] as $it): ?>
-                    <div class="flex gap-4 py-5" data-cart-row data-item-id="<?= esc($it['id'], 'attr') ?>">
-                        <a href="<?= esc($it['url'], 'attr') ?>" class="shrink-0"><img src="<?= esc($it['image'], 'attr') ?>" alt="" width="112" height="112" class="w-24 h-24 sm:w-28 sm:h-28 rounded-md object-cover bg-sand"></a>
+                <?php foreach ($snapshot['items'] as $it): $isAddon = ! empty($it['addon_of']); ?>
+                    <div class="flex gap-4 <?= $isAddon ? 'pt-0 pb-5 pl-8 sm:pl-12 !border-t-0' : 'py-5' ?>" data-cart-row data-item-id="<?= esc($it['id'], 'attr') ?>" data-addon-of="<?= esc((string) ($it['addon_of'] ?? ''), 'attr') ?>">
+                        <a href="<?= esc($it['url'], 'attr') ?>" class="shrink-0"><img src="<?= esc($it['image'], 'attr') ?>" alt="" width="112" height="112" class="<?= $isAddon ? 'w-16 h-16 sm:w-20 sm:h-20' : 'w-24 h-24 sm:w-28 sm:h-28' ?> rounded-md object-cover bg-sand"></a>
                         <div class="flex-1 min-w-0">
+                            <?php if ($isAddon): ?><p class="text-[11px] uppercase tracking-wide text-subtle leading-none mb-1">Add-on</p><?php endif ?>
                             <div class="flex justify-between gap-3">
                                 <a href="<?= esc($it['url'], 'attr') ?>" class="font-display text-lg leading-snug hover:text-wood"><?= esc($it['name']) ?></a>
                                 <button type="button" class="text-subtle hover:text-danger p-1 shrink-0" data-cart-remove aria-label="Remove item">
@@ -40,6 +42,37 @@
                         </div>
                     </div>
                 <?php endforeach ?>
+            </div>
+
+            <!-- "Pairs well with" — mapped add-ons of cart items not yet in the cart -->
+            <?php if (! empty($snapshot['suggestions'])): ?>
+                <section class="mt-8 rounded-lg border border-line p-5" data-cart-page-suggestions aria-labelledby="pairs-heading">
+                    <h2 id="pairs-heading" class="font-display text-lg">Pairs well with your cart</h2>
+                    <p class="text-sm text-muted mt-0.5 mb-4">Essentials that go with what you've picked.</p>
+                    <div class="grid sm:grid-cols-2 gap-4" data-suggestion-list>
+                        <?php foreach ($snapshot['suggestions'] as $s): ?>
+                            <div class="flex gap-3 items-start" data-suggestion data-product-id="<?= (int) $s['product_id'] ?>"
+                                 data-parent-id="<?= (int) $s['parent_id'] ?>" data-parent-qty="<?= (int) $s['parent_qty'] ?>" data-variant-id="<?= (int) $s['variant_id'] ?: '' ?>">
+                                <a href="<?= esc($s['url'], 'attr') ?>" class="shrink-0"><img src="<?= esc($s['image'], 'attr') ?>" alt="" width="64" height="64" loading="lazy" class="w-16 h-16 rounded-md object-cover bg-sand"></a>
+                                <div class="flex-1 min-w-0">
+                                    <a href="<?= esc($s['url'], 'attr') ?>" class="text-sm font-medium leading-snug line-clamp-2 hover:text-wood"><?= esc($s['name']) ?></a>
+                                    <p class="text-sm tabular-nums mt-0.5" data-suggestion-price><?= price($s['price']) ?></p>
+                                    <?php if (count($s['variants']) > 1): ?>
+                                        <select class="mt-1.5 w-full rounded-md border border-line bg-bg px-2 py-1.5 text-xs focus:border-ink focus:outline-none" data-suggestion-variant aria-label="Choose an option for <?= esc($s['name'], 'attr') ?>">
+                                            <?php foreach ($s['variants'] as $v): ?>
+                                                <option value="<?= (int) $v['id'] ?>" data-price="<?= esc((string) $v['price'], 'attr') ?>" <?= $v['id'] === $s['variant_id'] ? 'selected' : '' ?> <?= $v['in_stock'] ? '' : 'disabled' ?>>
+                                                    <?= esc($v['label']) ?> — <?= price($v['price']) ?><?= $v['in_stock'] ? '' : ' (sold out)' ?>
+                                                </option>
+                                            <?php endforeach ?>
+                                        </select>
+                                    <?php endif ?>
+                                </div>
+                                <button type="button" class="shrink-0 self-center min-h-[36px] px-3 rounded-md border border-ink text-xs font-medium hover:bg-ink hover:text-bg transition disabled:opacity-50" data-suggestion-add>+ Add</button>
+                            </div>
+                        <?php endforeach ?>
+                    </div>
+                </section>
+            <?php endif ?>
             </div>
 
             <!-- Summary -->

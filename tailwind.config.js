@@ -48,8 +48,8 @@ module.exports = {
       fontSize: {
         // Fluid, responsive type scale
         'display': ['clamp(2.5rem, 6vw, 5.5rem)', { lineHeight: '1.02', letterSpacing: '-0.02em' }],
-        'h1': ['clamp(2rem, 4vw, 3.75rem)', { lineHeight: '1.08', letterSpacing: '-0.015em' }],
-        'h2': ['clamp(1.6rem, 3vw, 2.75rem)', { lineHeight: '1.12', letterSpacing: '-0.01em' }],
+        'h1': ['clamp(1.5rem, 3vw, 2.5rem)', { lineHeight: '1.12', letterSpacing: '-0.01em' }],
+        'h2': ['clamp(1.5rem, 3vw, 2.5rem)', { lineHeight: '1.12', letterSpacing: '-0.01em' }],
         'h3': ['clamp(1.3rem, 2vw, 1.9rem)', { lineHeight: '1.2' }],
       },
       maxWidth: {

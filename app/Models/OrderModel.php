@@ -24,6 +24,16 @@ class OrderModel extends Model
             ->findAll();
     }
 
+    public function countForUser(int $userId): int
+    {
+        return $this->where('user_id', $userId)->countAllResults();
+    }
+
+    public function recentForUser(int $userId, int $limit = 3): array
+    {
+        return $this->where('user_id', $userId)->orderBy('created_at', 'DESC')->findAll($limit);
+    }
+
     public function findByNumber(string $number): ?array
     {
         return $this->where('order_number', $number)->first();

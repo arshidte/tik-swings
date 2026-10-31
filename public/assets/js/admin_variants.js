@@ -21,6 +21,13 @@
   var emptyEl     = root.querySelector('[data-variant-empty]');
   var skuInput    = document.getElementById('sku');
   var priceInput  = document.getElementById('price');
+  var toolsEl     = root.querySelector('[data-variant-tools]');
+  var scrollEl    = root.querySelector('[data-variant-scroll]');
+  var searchEl    = root.querySelector('[data-vf-search]');
+  var filterAttrs = root.querySelector('[data-vf-attrs]');
+  var clearEl     = root.querySelector('[data-vf-clear]');
+  var noneEl      = root.querySelector('[data-vf-none]');
+  var bulkScopeEl = root.querySelector('[data-bulk-scope]');
 
   var seq = 0;
   function uid(prefix) { return prefix + 'k' + (++seq) + (Date.now() % 10000); }
@@ -176,11 +183,40 @@
     }).join('');
   }
 
+  function comboLabel(attrs, combo) {
+    var parts = attrs.map(function (a) {
+      var val = combo ? valueOf(a, combo[a.key]) : null;
+      return val && (val.label || '').trim() ? val.label : '';
+    }).filter(Boolean);
+    return parts.length ? parts.join(' · ') : 'Choose options';
+  }
+
+  // Filter selections survive re-renders: attrKey -> valueKey ('' = all).
+  var filters = {};
+
+  function renderFilterControls(attrs) {
+    if (!filterAttrs) return;
+    filterAttrs.innerHTML = attrs.map(function (a) {
+      var opts = a.values.filter(function (val) { return (val.label || '').trim(); }).map(function (val) {
+        return '<option value="' + esc(val.key) + '"' + (filters[a.key] === val.key ? ' selected' : '') + '>' + esc(val.label) + '</option>';
+      }).join('');
+      return '<select data-vf-attr="' + esc(a.key) + '" aria-label="Filter by ' + esc(a.name) + '" class="field-input !py-1.5 !text-sm !w-auto max-w-[11rem]">' +
+        '<option value="">All ' + esc(a.name) + '</option>' + opts + '</select>';
+    }).join('');
+  }
+
   function renderVariants() {
     var attrs = usableAttrs();
-    countEl.textContent = state.variants.length ? '(' + state.variants.length + ')' : '';
-    emptyEl.style.display = state.variants.length ? 'none' : '';
+    var has = state.variants.length > 0;
+    countEl.textContent = has ? '(' + state.variants.length + ')' : '';
+    emptyEl.style.display = has ? 'none' : '';
+    if (toolsEl) toolsEl.hidden = !has;
+    if (scrollEl) scrollEl.hidden = !has;
+    renderFilterControls(attrs);
 
+    // One compact table row per variant. Option values show as text; the
+    // dropdowns live in a collapsed editor (opened via "Edit", or by default
+    // for new manual rows), so 45 variants fit in a few screens.
     variantRows.innerHTML = state.variants.map(function (v) {
       var selects = attrs.map(function (a) {
         var opts = a.values.filter(function (val) { return (val.label || '').trim(); }).map(function (val) {
@@ -188,32 +224,114 @@
           return '<option value="' + esc(val.key) + '"' + sel + '>' + esc(val.label) + '</option>';
         }).join('');
         return '<select data-combo="' + esc(a.key) + '" name="variants[' + esc(v.key) + '][combo][' + esc(a.key) + ']" ' +
-          'class="field-input !py-1.5 !text-sm" title="' + esc(a.name) + '">' + opts + '</select>';
+          'class="field-input !py-1 !text-xs !w-auto" title="' + esc(a.name) + '" aria-label="' + esc(a.name) + '">' + opts + '</select>';
       }).join('');
+      var inactive = v.status === 'inactive';
 
       return '' +
-        '<div class="flex flex-wrap items-center gap-2 rounded-md border border-line p-2.5" data-variant="' + esc(v.key) + '">' +
-          '<label class="flex items-center gap-1 text-xs text-muted shrink-0" title="Default variant">' +
+        '<tr class="align-middle hover:bg-sand/30' + (inactive ? ' bg-sand/20' : '') + '" data-variant="' + esc(v.key) + '">' +
+          '<td class="px-2 py-1.5 text-center">' +
             '<input type="radio" name="variant_default" value="' + esc(v.key) + '"' + (v.isDefault ? ' checked' : '') +
-              ' class="w-4 h-4 text-wood focus:ring-wood/30"> Default' +
-          '</label>' +
-          selects +
-          '<input data-v-sku name="variants[' + esc(v.key) + '][sku]" value="' + esc(v.sku) + '" placeholder="SKU" ' +
-            'class="field-input !py-1.5 !text-sm w-36">' +
-          '<input data-v-stock type="number" min="0" name="variants[' + esc(v.key) + '][stock]" value="' + esc(v.stock != null ? v.stock : 0) + '" ' +
-            'placeholder="Stock" class="field-input !py-1.5 !text-sm w-20">' +
-          '<label class="flex items-center gap-1 shrink-0" title="Variant price">' +
-            '<span class="text-sm text-muted">₹</span>' +
-            '<input data-v-price type="number" step="0.01" min="0" name="variants[' + esc(v.key) + '][price]" ' +
-              'value="' + esc(v.price != null ? v.price : priceFor(v.combo)) + '" class="field-input !py-1.5 !text-sm w-28 tabular-nums">' +
-          '</label>' +
-          '<select data-v-status name="variants[' + esc(v.key) + '][status]" class="field-input !py-1.5 !text-sm w-24">' +
-            '<option value="active"' + (v.status !== 'inactive' ? ' selected' : '') + '>Active</option>' +
-            '<option value="inactive"' + (v.status === 'inactive' ? ' selected' : '') + '>Inactive</option>' +
-          '</select>' +
-          '<button type="button" data-remove-variant class="text-muted hover:text-danger w-7 h-7 shrink-0 ml-auto" aria-label="Remove variant">&times;</button>' +
-        '</div>';
+              ' aria-label="Default variant" class="w-4 h-4 text-wood focus:ring-wood/30">' +
+          '</td>' +
+          '<td class="px-2 py-1.5 min-w-[12rem]">' +
+            '<div class="flex items-center gap-2">' +
+              '<span data-v-label class="' + (inactive ? 'text-muted line-through' : 'font-medium') + '">' + esc(comboLabel(attrs, v.combo)) + '</span>' +
+              (attrs.length ? '<button type="button" data-edit-combo class="text-xs text-wood hover:underline shrink-0" aria-expanded="' + (v.editing ? 'true' : 'false') + '">' + (v.editing ? 'Done' : 'Edit') + '</button>' : '') +
+            '</div>' +
+            '<div data-combo-editor class="flex flex-wrap gap-1.5 mt-1.5' + (v.editing ? '' : ' hidden') + '">' + selects + '</div>' +
+          '</td>' +
+          '<td class="px-2 py-1.5">' +
+            '<input data-v-sku name="variants[' + esc(v.key) + '][sku]" value="' + esc(v.sku) + '" placeholder="SKU" aria-label="SKU" ' +
+              'class="field-input !py-1 !text-sm min-w-[9rem]">' +
+          '</td>' +
+          '<td class="px-2 py-1.5">' +
+            '<input data-v-stock type="number" min="0" name="variants[' + esc(v.key) + '][stock]" value="' + esc(v.stock != null ? v.stock : 0) + '" ' +
+              'aria-label="Stock" class="field-input !py-1 !text-sm w-20 tabular-nums">' +
+          '</td>' +
+          '<td class="px-2 py-1.5">' +
+            '<label class="flex items-center gap-1" title="Variant price">' +
+              '<span class="text-muted">₹</span>' +
+              '<input data-v-price type="number" step="0.01" min="0" name="variants[' + esc(v.key) + '][price]" aria-label="Price" ' +
+                'value="' + esc(v.price != null ? v.price : priceFor(v.combo)) + '" class="field-input !py-1 !text-sm w-28 tabular-nums">' +
+            '</label>' +
+          '</td>' +
+          '<td class="px-2 py-1.5">' +
+            '<select data-v-status name="variants[' + esc(v.key) + '][status]" aria-label="Status" class="field-input !py-1 !text-sm w-[6.75rem]">' +
+              '<option value="active"' + (!inactive ? ' selected' : '') + '>Active</option>' +
+              '<option value="inactive"' + (inactive ? ' selected' : '') + '>Inactive</option>' +
+            '</select>' +
+          '</td>' +
+          '<td class="px-1 py-1.5 text-center">' +
+            '<button type="button" data-remove-variant class="text-muted hover:text-danger w-7 h-7" aria-label="Remove variant">&times;</button>' +
+          '</td>' +
+        '</tr>';
     }).join('');
+    applyFilters();
+  }
+
+  // --- filter + bulk edit ---------------------------------------------------
+  function visibleRows() {
+    return Array.prototype.filter.call(variantRows.querySelectorAll('[data-variant]'), function (r) { return !r.hidden; });
+  }
+
+  function applyFilters() {
+    if (!toolsEl) return;
+    var q = (searchEl && searchEl.value || '').trim().toLowerCase();
+    var active = Object.keys(filters).filter(function (k) { return filters[k]; });
+    var rows = variantRows.querySelectorAll('[data-variant]');
+    var shown = 0;
+    rows.forEach(function (row) {
+      var ok = active.every(function (k) {
+        var sel = row.querySelector('[data-combo="' + k + '"]');
+        return !sel || sel.value === filters[k];
+      });
+      if (ok && q) {
+        var text = (row.querySelector('[data-v-label]').textContent + ' ' + row.querySelector('[data-v-sku]').value).toLowerCase();
+        ok = text.indexOf(q) !== -1;
+      }
+      row.hidden = !ok;   // hidden rows are still submitted
+      if (ok) shown++;
+    });
+    var total = rows.length;
+    var filtered = shown !== total;
+    countEl.textContent = total ? (filtered ? '(' + shown + ' of ' + total + ')' : '(' + total + ')') : '';
+    if (bulkScopeEl) bulkScopeEl.textContent = filtered ? '— the ' + shown + ' shown' : '— all ' + total;
+    if (noneEl) noneEl.classList.toggle('hidden', shown > 0 || !total);
+    if (clearEl) clearEl.classList.toggle('hidden', !(q || active.length));
+  }
+
+  function applyBulk() {
+    var stock  = toolsEl.querySelector('[data-bulk-stock]');
+    var price  = toolsEl.querySelector('[data-bulk-price]');
+    var status = toolsEl.querySelector('[data-bulk-status]');
+    if (stock.value === '' && price.value === '' && !status.value) {
+      alert('Enter a stock, price or status to apply.');
+      return;
+    }
+    var rows = visibleRows();
+    rows.forEach(function (row) {
+      if (stock.value !== '') row.querySelector('[data-v-stock]').value = Math.max(0, parseInt(stock.value, 10) || 0);
+      if (price.value !== '') {
+        row.querySelector('[data-v-price]').value = price.value;
+        var v = variantByKey(row.dataset.variant);
+        if (v) { v.priceEdited = true; v.price = price.value; }
+      }
+      if (status.value) row.querySelector('[data-v-status]').value = status.value;
+    });
+    stock.value = ''; price.value = ''; status.value = '';
+    syncFromDom();
+    renderVariants();
+    flash(rows.length + ' variant' + (rows.length === 1 ? '' : 's') + ' updated');
+  }
+
+  function flash(msg) {
+    if (!bulkScopeEl) return;
+    var el = document.createElement('span');
+    el.className = 'text-xs text-success';
+    el.textContent = '✓ ' + msg;
+    toolsEl.querySelector('[data-bulk-apply]').insertAdjacentElement('afterend', el);
+    setTimeout(function () { el.remove(); }, 2500);
   }
 
   // Re-seed prices from base + adjustments, but only for rows the admin hasn't
@@ -282,8 +400,12 @@
       var first = a.values.filter(function (v) { return (v.label || '').trim(); })[0];
       if (first) combo[a.key] = first.key;
     });
-    state.variants.push({ key: uid('x'), sku: autoSku(attrs, combo), stock: 0, status: 'active', isDefault: !state.variants.length, price: priceFor(combo), priceEdited: false, combo: combo });
+    state.variants.push({ key: uid('x'), sku: autoSku(attrs, combo), stock: 0, status: 'active', isDefault: !state.variants.length, price: priceFor(combo), priceEdited: false, combo: combo, editing: true });
+    // A new row must be visible to be edited — drop any active filters.
+    filters = {};
+    if (searchEl) searchEl.value = '';
     renderVariants();
+    if (scrollEl) scrollEl.scrollTop = scrollEl.scrollHeight;
   }
 
   // --- events --------------------------------------------------------------
@@ -326,12 +448,60 @@
       renderVariants();
       return;
     }
+    if (t.closest('[data-edit-combo]')) {
+      var btn  = t.closest('[data-edit-combo]');
+      var row  = btn.closest('[data-variant]');
+      var vv   = variantByKey(row.dataset.variant);
+      var open = row.querySelector('[data-combo-editor]').classList.toggle('hidden') === false;
+      if (vv) vv.editing = open;
+      btn.textContent = open ? 'Done' : 'Edit';
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      return;
+    }
+    if (t.closest('[data-bulk-apply]')) { applyBulk(); return; }
+    if (t.closest('[data-vf-clear]')) {
+      filters = {};
+      if (searchEl) searchEl.value = '';
+      renderFilterControls(usableAttrs());
+      applyFilters();
+      return;
+    }
   });
+
+  // Enter in the filter / bulk fields must not submit the product form.
+  if (toolsEl) {
+    toolsEl.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      if (e.target.closest('[data-bulk-stock], [data-bulk-price]')) applyBulk();
+    });
+  }
+  if (searchEl) searchEl.addEventListener('input', applyFilters);
 
   // Toggling "Affects price" shows/hides the adjustment inputs and changes prices.
   root.addEventListener('change', function (e) {
     if (e.target.matches('[data-affects]')) { syncFromDom(); render(); return; }
-    if (e.target.matches('[data-combo]'))   { refreshPrices(); return; }
+    if (e.target.matches('[data-combo]'))   {
+      var row = e.target.closest('[data-variant]');
+      var combo = {};
+      row.querySelectorAll('[data-combo]').forEach(function (sel) { combo[sel.dataset.combo] = sel.value; });
+      row.querySelector('[data-v-label]').textContent = comboLabel(usableAttrs(), combo);
+      refreshPrices();
+      return;
+    }
+    if (e.target.matches('[data-v-status]')) {
+      var lbl = e.target.closest('[data-variant]').querySelector('[data-v-label]');
+      var off = e.target.value === 'inactive';
+      lbl.classList.toggle('line-through', off);
+      lbl.classList.toggle('text-muted', off);
+      lbl.classList.toggle('font-medium', !off);
+      return;
+    }
+    if (e.target.matches('[data-vf-attr]')) {
+      filters[e.target.dataset.vfAttr] = e.target.value;
+      applyFilters();
+      return;
+    }
   });
 
   // Live updates: colour picker fills the hex field; adjustments update prices.

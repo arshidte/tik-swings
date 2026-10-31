@@ -4,16 +4,25 @@
 <div class="grid lg:grid-cols-3 gap-6 items-start">
     <div class="lg:col-span-2 bg-surface rounded-lg border border-line overflow-hidden">
         <table class="w-full text-sm">
-            <thead class="bg-sand/50 text-left text-muted"><tr><th class="px-4 py-3 font-medium">Name</th><th class="px-4 py-3 font-medium">Slug</th><th class="px-4 py-3 font-medium">Order</th><th class="px-4 py-3 font-medium">Status</th></tr></thead>
+            <thead class="bg-sand/50 text-left text-muted"><tr><th class="px-4 py-3 font-medium">Name</th><th class="px-4 py-3 font-medium">Slug</th><th class="px-4 py-3 font-medium">Order</th><th class="px-4 py-3 font-medium">Products</th><th class="px-4 py-3 font-medium">Status</th><th class="px-4 py-3"><span class="sr-only">Actions</span></th></tr></thead>
             <tbody class="divide-y divide-line">
                 <?php foreach ($categories as $c): ?>
                     <tr class="hover:bg-sand/30">
                         <td class="px-4 py-3 font-medium"><?= esc($c['name']) ?><?php if ($c['featured']): ?> <span class="badge-soft">Featured</span><?php endif ?></td>
                         <td class="px-4 py-3 text-muted"><?= esc($c['slug']) ?></td>
                         <td class="px-4 py-3 tabular-nums"><?= (int) $c['sort_order'] ?></td>
+                        <?php $n = $counts[(int) $c['id']] ?? 0; ?>
+                        <td class="px-4 py-3 tabular-nums"><?= $n ?></td>
                         <td class="px-4 py-3"><span class="badge <?= $c['status'] === 'active' ? 'bg-success/10 text-success' : 'bg-sand text-wood-dark' ?>"><?= esc($c['status']) ?></span></td>
+                        <td class="px-4 py-3 text-right">
+                            <form method="post" action="<?= base_url('admin/categories/delete/' . $c['id']) ?>" class="inline"
+                                  onsubmit="return confirm('Delete “<?= esc($c['name'], 'js') ?>”?\n\n<?= $n > 0 ? esc($n . ' product' . ($n === 1 ? '' : 's') . ' will be kept and become uncategorised.', 'js') : 'It has no products.' ?>')">
+                                <?= csrf_field() ?><button class="text-danger hover:underline">Delete</button>
+                            </form>
+                        </td>
                     </tr>
                 <?php endforeach ?>
+                <?php if (empty($categories)): ?><tr><td colspan="6" class="px-4 py-10 text-center text-muted">No categories yet.</td></tr><?php endif ?>
             </tbody>
         </table>
     </div>

@@ -14,6 +14,7 @@ $routes->get('category/(:segment)', 'Frontend\Shop::category/$1');
 $routes->get('product/(:segment)', 'Frontend\Product::show/$1');
 $routes->post('product/variant', 'Frontend\Product::variant'); // AJAX variant resolve (§15)
 $routes->get('product/media/(:num)', 'Frontend\Product::media/$1'); // lazy-load customer gallery
+$routes->get('product/reviews/(:num)', 'Frontend\Product::reviews/$1'); // "Show more reviews"
 
 // Search (§21)
 $routes->get('search', 'Frontend\Search::index');
@@ -21,6 +22,7 @@ $routes->get('search/suggest', 'Frontend\Search::suggest');
 
 // Content pages
 $routes->get('about', 'Frontend\Pages::about');
+$routes->get('page/(:segment)', 'Frontend\Pages::show/$1'); // admin-created CMS pages
 $routes->get('craftsmanship', 'Frontend\Pages::craftsmanship');
 // $routes->get('custom-swings', 'Frontend\Pages::customSwings');
 $routes->get('contact', 'Frontend\Pages::contact');
@@ -90,6 +92,7 @@ $routes->group('admin', ['filter' => 'admin'], static function ($routes) {
     $routes->get('/', 'Admin\Dashboard::index');
     $routes->get('products', 'Admin\Products::index');
     $routes->get('products/create', 'Admin\Products::create');
+    $routes->get('products/search', 'Admin\Products::search'); // add-on picker (AJAX)
     $routes->post('products/store', 'Admin\Products::store');
     $routes->get('products/edit/(:num)', 'Admin\Products::edit/$1');
     $routes->post('products/update/(:num)', 'Admin\Products::update/$1');
@@ -101,6 +104,7 @@ $routes->group('admin', ['filter' => 'admin'], static function ($routes) {
     $routes->get('categories', 'Admin\Categories::index');
     $routes->post('categories/store', 'Admin\Categories::store');
     $routes->post('categories/update/(:num)', 'Admin\Categories::update/$1');
+    $routes->post('categories/delete/(:num)', 'Admin\Categories::delete/$1');
     $routes->get('orders', 'Admin\Orders::index');
     $routes->get('orders/(:num)', 'Admin\Orders::show/$1');
     $routes->post('orders/status/(:num)', 'Admin\Orders::updateStatus/$1');
@@ -111,6 +115,13 @@ $routes->group('admin', ['filter' => 'admin'], static function ($routes) {
     $routes->get('coupons', 'Admin\Coupons::index');
     $routes->post('coupons/store', 'Admin\Coupons::store');
     $routes->get('pages', 'Admin\Pages::index');
+    $routes->get('pages/create', 'Admin\Pages::create');
+    $routes->post('pages/store', 'Admin\Pages::store');
+    $routes->get('pages/edit/(:num)', 'Admin\Pages::edit/$1');
+    $routes->post('pages/update/(:num)', 'Admin\Pages::update/$1');
+    $routes->post('pages/delete/(:num)', 'Admin\Pages::delete/$1');
+    $routes->get('pages/preview/(:num)', 'Admin\Pages::preview/$1');
+    $routes->post('pages/upload-image', 'Admin\Pages::uploadImage'); // rich-text editor images
     $routes->get('messages', 'Admin\Messages::index');
     $routes->get('subscribers', 'Admin\Subscribers::index');
     $routes->get('settings', 'Admin\Settings::index');

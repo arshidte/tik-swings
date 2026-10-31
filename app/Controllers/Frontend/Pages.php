@@ -26,6 +26,17 @@ class Pages extends BaseController
         ]);
     }
 
+    /** Admin-created content pages, served at /page/{slug}. */
+    public function show(string $slug): string
+    {
+        // Pages with a fixed route (about, faq…) live at their own URL only.
+        if (PageModel::isSystem($slug)) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
+        return $this->renderCms($slug);
+    }
+
     public function about(): string
     {
         return $this->renderCms('about');
@@ -88,9 +99,11 @@ class Pages extends BaseController
 
     public function journal(): string
     {
-        $posts = (new PageModel())->journal(12);
+        $model = new PageModel();
+        $posts = $model->journalQuery()->paginate(9);
 
         return view('frontend/journal_index', [
+            'pager' => $model->pager,
             'meta'  => ['title' => 'Journal — ' . store_name(), 'description' => 'Stories, guides and workshop notes from ' . store_name() . '.'],
             'posts' => $posts,
         ]);

@@ -5,7 +5,7 @@
     <div class="absolute inset-0 opacity-40"><img src="<?= base_url('assets/images/craft/artisans.svg') ?>" alt="" class="w-full h-full object-cover"><div class="absolute inset-0 bg-gradient-to-t from-ink to-ink/30"></div></div>
     <div class="relative container-page py-20 sm:py-28">
         <p class="eyebrow text-wood-light reveal">Made to order</p>
-        <h1 class="mt-3 text-display font-display max-w-3xl reveal">Design Your Own Swing.</h1>
+        <h1 class="mt-3 text-display font-display text-bg max-w-3xl reveal">Design Your Own Swing.</h1>
         <p class="mt-5 text-lg text-bg/80 max-w-2xl reveal">Choose the wood, the finish, the rope and the exact size. We craft it to fit your corner — and your life.</p>
     </div>
 </section>

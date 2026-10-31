@@ -3,6 +3,7 @@
 namespace App\Controllers\Frontend;
 
 use App\Controllers\BaseController;
+use App\Models\ProductAddonModel;
 use App\Models\ProductModel;
 use App\Models\ProductOptionValueModel;
 use App\Models\ProductUserMediaModel;
@@ -11,6 +12,9 @@ use App\Models\ReviewModel;
 
 class Product extends BaseController
 {
+    /** Reviews shown up front on the product page, and per "Show more" batch. */
+    private const REVIEWS_PER_PAGE = 6;
+
     public function show(string $slug)
     {
         $model   = new ProductModel();
@@ -19,7 +23,8 @@ class Product extends BaseController
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
         }
 
-        $reviews = (new ReviewModel())->approvedForProduct((int) $product['id'], 12);
+        $reviewModel = new ReviewModel();
+        $reviews     = $reviewModel->approvedForProduct((int) $product['id'], self::REVIEWS_PER_PAGE);
         $related = $model->relatedTo($product, 4);
 
         return view('frontend/product', [
@@ -32,10 +37,24 @@ class Product extends BaseController
             'schema'       => $this->productSchema($product, $reviews),
             'product'      => $product,
             'reviews'      => $reviews,
+            'reviewTotal'  => $reviewModel->countApprovedForProduct((int) $product['id']),
             'related'      => $related,
             'wishIds'      => wishlist_ids(),
             'optionBadges' => (new ProductOptionValueModel())->badgesForProduct((int) $product['id']),
+            'addons'       => (new ProductAddonModel())->storefrontFor([(int) $product['id']]),
         ]);
+    }
+
+    /**
+     * Next batch of approved reviews for the "Show more reviews" button.
+     * Returns rendered cards (empty when there is nothing more).
+     */
+    public function reviews(int $id)
+    {
+        $offset  = max(0, (int) $this->request->getGet('offset'));
+        $reviews = (new ReviewModel())->approvedForProduct($id, self::REVIEWS_PER_PAGE, $offset);
+
+        return view('frontend/partials/review_cards', ['reviews' => $reviews]);
     }
 
     /**

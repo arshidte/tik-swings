@@ -30,7 +30,7 @@ class CatalogSeeder extends Seeder
                 'name' => $name, 'slug' => $slug, 'description' => $desc,
                 'image' => "assets/images/categories/{$slug}.svg",
                 'sort_order' => $order++, 'featured' => $featured, 'status' => 'active',
-                'seo_title' => "{$name} — Handcrafted Wooden Swings | Swing & Grain",
+                'seo_title' => "{$name} — Handcrafted Wooden Swings | TIK Swings",
                 'seo_description' => $desc,
                 'created_at' => $now, 'updated_at' => $now,
             ]);
@@ -120,7 +120,7 @@ class CatalogSeeder extends Seeder
                 'installation_available' => 1, 'is_customizable' => $custom,
                 'rating_avg' => 0, 'rating_count' => 0,
                 'featured' => $featured, 'status' => 'active',
-                'seo_title' => "{$name} — Handcrafted {$wood} Swing | Swing & Grain",
+                'seo_title' => "{$name} — Handcrafted {$wood} Swing | TIK Swings",
                 'seo_description' => $short,
                 'created_at' => $now, 'updated_at' => $now,
             ]);

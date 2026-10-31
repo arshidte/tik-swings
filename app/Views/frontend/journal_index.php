@@ -21,6 +21,7 @@
                 </a>
             <?php endforeach ?>
         </div>
+        <?php if ($pager->getPageCount() > 1): ?><div class="mt-12 flex justify-center"><?= $pager->links('default', 'swing_pager') ?></div><?php endif ?>
     <?php else: ?>
         <p class="text-muted">New stories are on the way.</p>
     <?php endif ?>

@@ -19,7 +19,7 @@ class Cart extends BaseController
      */
     public function index()
     {
-        $snapshot = $this->cart->snapshot();
+        $snapshot = $this->cart->snapshot(true);
         $this->cart->syncCount();
 
         return view('cart/index', [
@@ -30,7 +30,7 @@ class Cart extends BaseController
 
     public function mini()
     {
-        $snap = $this->cart->snapshot();
+        $snap = $this->cart->snapshot(true);
         $this->cart->syncCount();
 
         return $this->jsonSuccess('', $snap);
@@ -46,16 +46,24 @@ class Cart extends BaseController
         if (is_string($options)) {
             $options = json_decode($options, true);
         }
+        // Optional add-ons chosen on the product page: [{product_id, variant_id}, ...]
+        $addons = $this->input('addons');
+        if (is_string($addons)) {
+            $addons = json_decode($addons, true);
+        }
+        $addons = is_array($addons) ? array_values(array_filter($addons, 'is_array')) : [];
 
         if ($productId <= 0) {
             return $this->jsonError('Please choose a product.');
         }
 
         try {
-            $snap = $this->cart->add($productId, $variantId, $quantity, is_array($options) ? $options : null);
+            $snap = $this->cart->add($productId, $variantId, $quantity, is_array($options) ? $options : null, $addons);
             $this->cart->syncCount();
 
-            return $this->jsonSuccess('Added to your cart.', $snap);
+            $added = 1 + count($addons);
+
+            return $this->jsonSuccess($added > 1 ? "Added {$added} items to your cart." : 'Added to your cart.', $snap);
         } catch (\RuntimeException $e) {
             return $this->jsonError($e->getMessage());
         } catch (\Throwable $e) {

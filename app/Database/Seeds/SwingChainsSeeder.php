@@ -44,7 +44,7 @@ class SwingChainsSeeder extends Seeder
                 'sort_order'      => $maxSort + 1,
                 'featured'        => 0,
                 'status'          => 'active',
-                'seo_title'       => 'Swing Chains & Hanging Hardware | Swing & Grain',
+                'seo_title'       => 'Swing Chains & Hanging Hardware | TIK Swings',
                 'seo_description' => 'Complete hanging chain and mounting hardware kits for wooden swings, in brass colour and steel finishes.',
                 'created_at'      => $now,
                 'updated_at'      => $now,

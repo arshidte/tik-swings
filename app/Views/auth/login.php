@@ -42,7 +42,6 @@
         </div>
 
         <p class="text-center text-muted mt-6">New here? <a href="<?= base_url('register') ?>" class="text-wood font-medium hover:text-wood-dark">Create an account</a></p>
-        <p class="text-center text-xs text-subtle mt-4">Demo: customer@example.com · password</p>
     </div>
 </div>
 <?= $this->endSection() ?>

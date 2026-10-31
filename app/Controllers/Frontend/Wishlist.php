@@ -40,15 +40,19 @@ class Wishlist extends BaseController
     {
         $ids = wishlist_ids();
         $products = [];
+        $pager    = null;
         if ($ids) {
             $model    = new ProductModel();
-            $products = $model->cardColumns()->whereIn('products.id', $ids)->where('products.status', 'active')->findAll();
+            $products = $model->cardColumns()->whereIn('products.id', $ids)->where('products.status', 'active')
+                ->orderBy('products.id', 'DESC')->paginate(24);
             $products = $model->withPrimaryImage($products);
+            $pager    = $model->pager;
         }
 
         return view('frontend/wishlist', [
             'meta'     => ['title' => 'Your Wishlist — ' . store_name()],
             'products' => $products,
+            'pager'    => $pager,
             'wishIds'  => $ids,
         ]);
     }

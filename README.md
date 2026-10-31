@@ -1,4 +1,4 @@
-# Swing & Grain — Premium Wooden Swing E-commerce
+# TIK Swings — Premium Wooden Swing E-commerce
 
 A production-ready storefront for a brand selling handcrafted wooden swings, built with
 **CodeIgniter 4 · PHP 8.2 · MySQL 8+ · Tailwind CSS · vanilla JS**. Server-rendered

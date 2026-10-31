@@ -22,6 +22,7 @@
                         </a>
                     <?php endforeach ?>
                 </div>
+                <?php if ($pager->getPageCount() > 1): ?><div class="mt-8"><?= $pager->links('default', 'swing_pager') ?></div><?php endif ?>
             <?php else: ?>
                 <div class="text-center py-16 border border-dashed border-line rounded-lg">
                     <p class="font-display text-xl">No orders yet.</p>

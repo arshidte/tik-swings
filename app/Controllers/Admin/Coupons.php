@@ -9,9 +9,13 @@ class Coupons extends BaseController
 {
     public function index(): string
     {
+        $model   = new CouponModel();
+        $coupons = $model->orderBy('id', 'DESC')->paginate(20);
+
         return view('admin/coupons', [
             'title'   => 'Coupons',
-            'coupons' => (new CouponModel())->orderBy('id', 'DESC')->findAll(),
+            'coupons' => $coupons,
+            'pager'   => $model->pager,
         ]);
     }
 

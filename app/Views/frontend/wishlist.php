@@ -13,6 +13,7 @@
                 <?= view('components/product_card', ['product' => $product, 'wishIds' => $wishIds]) ?>
             <?php endforeach ?>
         </div>
+        <?php if ($pager && $pager->getPageCount() > 1): ?><div class="mt-12 flex justify-center"><?= $pager->links('default', 'swing_pager') ?></div><?php endif ?>
     <?php else: ?>
         <div class="text-center py-20 border border-dashed border-line rounded-lg max-w-lg mx-auto">
             <span class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-sand text-terracotta mb-5">

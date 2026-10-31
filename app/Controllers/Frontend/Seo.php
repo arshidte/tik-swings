@@ -22,15 +22,22 @@ class Seo extends BaseController
             ['loc' => base_url('faq'), 'priority' => '0.4', 'freq' => 'yearly'],
         ];
 
-        foreach ((new CategoryModel())->active()->findAll() as $c) {
+        foreach ((new CategoryModel())->select('slug')->active()->findAll() as $c) {
             $urls[] = ['loc' => base_url('category/' . $c['slug']), 'priority' => '0.8', 'freq' => 'weekly'];
         }
         foreach ((new ProductModel())->select('slug, updated_at')->where('status', 'active')->findAll() as $p) {
             $urls[] = ['loc' => base_url('product/' . $p['slug']), 'priority' => '0.8', 'freq' => 'weekly', 'lastmod' => date('Y-m-d', strtotime($p['updated_at'] ?? 'now'))];
         }
-        foreach ((new PageModel())->where('type', 'journal')->where('status', 'published')->findAll() as $j) {
+        $pages = new PageModel();
+        foreach ($pages->journal(500) as $j) {
             $urls[] = ['loc' => base_url('journal/' . $j['slug']), 'priority' => '0.5', 'freq' => 'monthly'];
         }
+        foreach ($pages->customPages() as $cp) {
+            $urls[] = ['loc' => base_url('page/' . $cp['slug']), 'priority' => '0.4', 'freq' => 'monthly', 'lastmod' => date('Y-m-d', strtotime($cp['updated_at'] ?? 'now'))];
+        }
+
+        // Sitemap protocol limit: 50,000 URLs per file (add a sitemap index beyond this).
+        $urls = array_slice($urls, 0, 50000);
 
         $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
         $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";

@@ -16,7 +16,7 @@
     </div>
     <div class="container-page max-w-prose">
         <div class="text-lg leading-relaxed text-ink/90 space-y-6 prose-content">
-            <?= $post['body'] // trusted admin content ?>
+            <?= cms_html($post['body']) // sanitized on save ?>
         </div>
         <div class="mt-12 pt-8 border-t border-line">
             <a href="<?= base_url('shop') ?>" class="btn-primary">Explore the Collection</a>

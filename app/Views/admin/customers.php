@@ -1,6 +1,13 @@
 <?= $this->extend('admin/layout') ?>
 
 <?= $this->section('content') ?>
+<form method="get" class="flex flex-wrap items-center gap-2 mb-5">
+    <input name="q" value="<?= esc($q, 'attr') ?>" placeholder="Search name, email or phone…" aria-label="Search customers" class="field-input py-2 min-h-[40px] text-sm max-w-sm flex-1">
+    <button class="btn-outline btn-sm">Search</button>
+    <?php if ($q !== ''): ?><a href="<?= base_url('admin/customers') ?>" class="text-sm text-wood hover:underline">Clear</a><?php endif ?>
+    <span class="text-sm text-muted ml-auto tabular-nums"><?= (int) $total ?> customer<?= $total === 1 ? '' : 's' ?></span>
+</form>
+
 <div class="bg-surface rounded-lg border border-line overflow-hidden">
     <table class="w-full text-sm">
         <thead class="bg-sand/50 text-left text-muted"><tr><th class="px-4 py-3 font-medium">Name</th><th class="px-4 py-3 font-medium">Email</th><th class="px-4 py-3 font-medium hidden sm:table-cell">Phone</th><th class="px-4 py-3 font-medium">Orders</th><th class="px-4 py-3 font-medium">Spent</th></tr></thead>

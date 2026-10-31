@@ -48,8 +48,10 @@ class Search extends BaseController
     public function index()
     {
         $q     = trim((string) $this->request->getGet('q'));
-        $model = new ProductModel();
+        $model    = new ProductModel();
         $products = [];
+        $pager    = null;
+        $total    = 0;
         if ($q !== '') {
             $products = $model->cardColumns()->active()
                 ->groupStart()
@@ -58,14 +60,20 @@ class Search extends BaseController
                 ->orLike('products.description', $q)
                 ->orLike('products.wood_type', $q)
                 ->groupEnd()
-                ->findAll(48);
+                ->orderBy('products.featured', 'DESC')
+                ->orderBy('products.id', 'DESC')
+                ->paginate(24);
             $products = $model->withPrimaryImage($products);
+            $pager    = $model->pager;
+            $total    = $pager->getTotal('default');
         }
 
         return view('frontend/search', [
             'meta'     => ['title' => ($q !== '' ? "Search: {$q}" : 'Search') . ' — ' . store_name()],
             'query'    => $q,
             'products' => $products,
+            'pager'    => $pager,
+            'total'    => $total,
             'wishIds'  => wishlist_ids(),
         ]);
     }

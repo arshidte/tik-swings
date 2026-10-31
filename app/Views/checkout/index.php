@@ -88,7 +88,7 @@ $errors  = session('errors') ?? [];
                 <h2 class="font-display text-xl mb-4">Order Summary</h2>
                 <div class="divide-y divide-line max-h-64 overflow-y-auto -mx-1 px-1">
                     <?php foreach ($snapshot['items'] as $it): ?>
-                        <div class="flex gap-3 py-3">
+                        <div class="flex gap-3 py-3 <?= ! empty($it['addon_of']) ? 'pl-6' : '' ?>">
                             <div class="relative shrink-0">
                                 <img src="<?= esc($it['image'], 'attr') ?>" alt="" width="56" height="56" class="w-14 h-14 rounded-md object-cover bg-sand">
                                 <span class="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-ink text-bg text-[11px] flex items-center justify-center tabular-nums"><?= (int) $it['quantity'] ?></span>

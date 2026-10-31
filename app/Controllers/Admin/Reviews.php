@@ -9,19 +9,22 @@ class Reviews extends BaseController
 {
     public function index(): string
     {
-        $db     = db_connect();
         $status = $this->request->getGet('status');
-        $builder = $db->table('reviews r')
-            ->select('r.*, p.name AS product_name, p.slug AS product_slug')
-            ->join('products p', 'p.id = r.product_id', 'left')
-            ->orderBy('r.id', 'DESC');
-        if ($status) {
-            $builder->where('r.status', $status);
+        $model  = new ReviewModel();
+        $model->select('reviews.*, p.name AS product_name, p.slug AS product_slug')
+            ->join('products p', 'p.id = reviews.product_id', 'left')
+            ->orderBy('reviews.id', 'DESC');
+        if (in_array($status, ['pending', 'approved', 'rejected'], true)) {
+            $model->where('reviews.status', $status);
+        } else {
+            $status = null;
         }
+        $reviews = $model->paginate(20);
 
         return view('admin/reviews', [
             'title'   => 'Reviews',
-            'reviews' => $builder->get(60)->getResultArray(),
+            'reviews' => $reviews,
+            'pager'   => $model->pager,
             'status'  => $status,
         ]);
     }

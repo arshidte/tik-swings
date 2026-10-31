@@ -15,8 +15,14 @@ class Orders extends BaseController
     {
         $model  = new OrderModel();
         $status = $this->request->getGet('status');
+        $q      = trim((string) $this->request->getGet('q'));
         if ($status) {
             $model->where('status', $status);
+        }
+        if ($q !== '') {
+            $model->groupStart()
+                ->like('order_number', $q)->orLike('email', $q)->orLike('phone', $q)
+                ->groupEnd();
         }
         $orders = $model->orderBy('id', 'DESC')->paginate(20);
 
@@ -25,6 +31,8 @@ class Orders extends BaseController
             'orders' => $orders,
             'pager'  => $model->pager,
             'status' => $status,
+            'q'      => $q,
+            'total'  => $model->pager->getTotal('default'),
         ]);
     }
 

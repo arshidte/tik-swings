@@ -1,6 +1,7 @@
 // Full cart page interactions (§27). Quantity + remove + coupon without a
 // full page reload; totals re-render from the server snapshot.
 import { $, $$, postJSON, toast, money, setCartCount } from './util.js';
+import { bindSuggestions } from './cart.js';
 
 const page = $('[data-cart-page]');
 if (page) {
@@ -9,6 +10,13 @@ if (page) {
     if (!data.items || data.items.length === 0) { window.location.reload(); return; }
 
     const byId = Object.fromEntries(data.items.map((i) => [i.id, i]));
+    // Add-on grouping changed (e.g. its swing was removed) — re-render server-side.
+    const regrouped = $$('[data-cart-row]', page).some((row) => {
+      const it = byId[row.dataset.itemId];
+      return it && (row.dataset.addonOf || '') !== (it.addon_of || '');
+    });
+    if (regrouped) { window.location.reload(); return; }
+
     $$('[data-cart-row]', page).forEach((row) => {
       const it = byId[row.dataset.itemId];
       if (!it) { row.remove(); return; }
@@ -58,4 +66,8 @@ if (page) {
     couponForm.code.value = 'WELCOME10';
     couponForm.requestSubmit();
   });
+
+  // "Pairs well with" — add without opening the drawer, then re-render the page.
+  const pairs = $('[data-cart-page-suggestions]', page);
+  if (pairs) bindSuggestions(pairs, { openDrawer: false, onAdded: () => window.location.reload() });
 }

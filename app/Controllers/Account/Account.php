@@ -19,13 +19,13 @@ class Account extends BaseController
 
     public function index()
     {
-        $orders = (new OrderModel())->forUser($this->uid());
+        $orders = new OrderModel();
 
         return view('account/dashboard', [
             'meta'        => ['title' => 'My Account — ' . store_name()],
             'user'        => (new UserModel())->find($this->uid()),
-            'recentOrders' => array_slice($orders, 0, 3),
-            'orderCount'  => count($orders),
+            'recentOrders' => $orders->recentForUser($this->uid(), 3),
+            'orderCount'  => $orders->countForUser($this->uid()),
             'addressCount' => count((new AddressModel())->forUser($this->uid())),
             'active'      => 'dashboard',
         ]);
@@ -33,9 +33,13 @@ class Account extends BaseController
 
     public function orders()
     {
+        $model  = new OrderModel();
+        $orders = $model->where('user_id', $this->uid())->orderBy('created_at', 'DESC')->paginate(10);
+
         return view('account/orders', [
             'meta'   => ['title' => 'My Orders — ' . store_name()],
-            'orders' => (new OrderModel())->forUser($this->uid()),
+            'orders' => $orders,
+            'pager'  => $model->pager,
             'active' => 'orders',
         ]);
     }

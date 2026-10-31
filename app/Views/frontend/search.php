@@ -7,7 +7,7 @@
         <h1 class="mt-2 text-h1 font-display">
             <?php if ($query !== ''): ?>Results for “<?= esc($query) ?>”<?php else: ?>Search our swings<?php endif ?>
         </h1>
-        <?php if ($query !== ''): ?><p class="mt-2 text-muted"><?= count($products) ?> swing<?= count($products) === 1 ? '' : 's' ?> found</p><?php endif ?>
+        <?php if ($query !== ''): ?><p class="mt-2 text-muted"><?= (int) $total ?> swing<?= $total === 1 ? '' : 's' ?> found<?= $pager && $pager->getPageCount() > 1 ? ' · page ' . $pager->getCurrentPage() . ' of ' . $pager->getPageCount() : '' ?></p><?php endif ?>
     </header>
 
     <?php if (! empty($products)): ?>
@@ -16,6 +16,7 @@
                 <?= view('components/product_card', ['product' => $product, 'wishIds' => $wishIds]) ?>
             <?php endforeach ?>
         </div>
+        <?php if ($pager && $pager->getPageCount() > 1): ?><div class="mt-12 flex justify-center"><?= $pager->links('default', 'swing_pager') ?></div><?php endif ?>
     <?php else: ?>
         <div class="text-center py-20 border border-dashed border-line rounded-lg max-w-lg mx-auto">
             <p class="font-display text-2xl">We couldn't find that swing.</p>

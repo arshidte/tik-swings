@@ -24,7 +24,7 @@ if (! function_exists('setting')) {
 if (! function_exists('store_name')) {
     function store_name(): string
     {
-        return setting('store_name', 'Swing & Grain');
+        return setting('store_name', 'TIK Swings');
     }
 }
 
@@ -105,5 +105,37 @@ if (! function_exists('wishlist_ids')) {
         }
 
         return session()->get('wishlist') ?? [];
+    }
+}
+
+if (! function_exists('cms_is_html')) {
+    /** True when a CMS body already contains HTML markup (vs. legacy plain text). */
+    function cms_is_html(?string $body): bool
+    {
+        return (bool) preg_match('/<\/?(p|h[1-6]|ul|ol|li|br|div|blockquote|img|a|strong|em|figure|table|hr)\b/i', (string) $body);
+    }
+}
+
+if (! function_exists('cms_html')) {
+    /**
+     * Render-ready HTML for a CMS body. Editor output is sanitized on save and
+     * returned as-is; legacy plain-text bodies (blank-line separated
+     * paragraphs) are escaped and wrapped in <p> tags.
+     */
+    function cms_html(?string $body): string
+    {
+        $body = trim((string) $body);
+        if ($body === '') {
+            return '';
+        }
+        if (cms_is_html($body)) {
+            return $body;
+        }
+        $out = '';
+        foreach (preg_split('/\n\s*\n/', $body) as $para) {
+            $out .= '<p>' . nl2br(esc(trim($para))) . '</p>';
+        }
+
+        return $out;
     }
 }

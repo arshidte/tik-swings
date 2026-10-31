@@ -21,12 +21,18 @@ class ReviewModel extends Model
         'body'        => 'required|max_length[2000]',
     ];
 
-    public function approvedForProduct(int $productId, int $limit = 10): array
+    public function approvedForProduct(int $productId, int $limit = 10, int $offset = 0): array
     {
         return $this->where('product_id', $productId)
             ->where('status', 'approved')
             ->orderBy('created_at', 'DESC')
-            ->findAll($limit);
+            ->orderBy('id', 'DESC') // stable order so batches never overlap
+            ->findAll($limit, max(0, $offset));
+    }
+
+    public function countApprovedForProduct(int $productId): int
+    {
+        return $this->where('product_id', $productId)->where('status', 'approved')->countAllResults();
     }
 
     /**

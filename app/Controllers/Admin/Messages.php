@@ -11,9 +11,13 @@ class Messages extends BaseController
     {
         helper('text');
 
+        $model    = new ContactMessageModel();
+        $messages = $model->orderBy('id', 'DESC')->paginate(15);
+
         return view('admin/messages', [
             'title'    => 'Messages',
-            'messages' => (new ContactMessageModel())->orderBy('id', 'DESC')->findAll(),
+            'messages' => $messages,
+            'pager'    => $model->pager,
         ]);
     }
 }

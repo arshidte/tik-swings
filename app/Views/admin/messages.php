@@ -15,4 +15,5 @@
     <?php endforeach ?>
     <?php if (empty($messages)): ?><p class="text-muted">No messages yet.</p><?php endif ?>
 </div>
+<?php if ($pager && $pager->getPageCount() > 1): ?><div class="mt-6"><?= $pager->links('default', 'swing_pager') ?></div><?php endif ?>
 <?= $this->endSection() ?>

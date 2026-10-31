@@ -96,7 +96,7 @@ class ContentSeeder extends Seeder
         // --- CMS pages & journal ----------------------------------------------
         $pages = [
             ['page', 'Our Story', 'about', 'Why we build swings, and who we build them with.',
-                "Swing & Grain began in a small Jodhpur workshop with a simple belief: that a home needs at least one place made for pausing. We work with families of artisans who have shaped wood for generations, pairing their craft with designs made for the way we live now.\n\nEvery swing is cut from solid, seasoned hardwood — never veneer, never particle board — and finished by hand. We make to order, so nothing sits in a warehouse and every piece carries the small, human marks of the person who made it."],
+                "TIK Swings began in a small Jodhpur workshop with a simple belief: that a home needs at least one place made for pausing. We work with families of artisans who have shaped wood for generations, pairing their craft with designs made for the way we live now.\n\nEvery swing is cut from solid, seasoned hardwood — never veneer, never particle board — and finished by hand. We make to order, so nothing sits in a warehouse and every piece carries the small, human marks of the person who made it."],
             ['page', 'The Craft', 'craftsmanship', 'From seasoned timber to a swing that lasts generations.',
                 "Great swings begin long before the first cut. We season our teak and sheesham for months so the wood is stable and the grain settles. Our artisans then shape each frame by hand, testing every joint for strength and every curve for comfort.\n\nWe use traditional joinery reinforced with modern hardware, marine-grade rope, and hand-polished brass. The result is a swing engineered to move silently and safely for decades."],
             ['page', 'Design Your Own Swing', 'custom-swings', 'Made to measure, made for your space.',
@@ -108,8 +108,8 @@ class ContentSeeder extends Seeder
             $db->table('pages')->insert([
                 'type' => $type, 'title' => $title, 'slug' => $slug, 'excerpt' => $excerpt,
                 'body' => $body, 'cover_image' => 'assets/images/lifestyle.svg',
-                'author' => 'Swing & Grain', 'status' => 'published',
-                'seo_title' => "{$title} | Swing & Grain", 'seo_description' => $excerpt,
+                'author' => 'TIK Swings', 'status' => 'published',
+                'seo_title' => "{$title} | TIK Swings", 'seo_description' => $excerpt,
                 'published_at' => $now, 'created_at' => $now, 'updated_at' => $now,
             ]);
         }
@@ -123,7 +123,7 @@ class ContentSeeder extends Seeder
             $db->table('pages')->insert([
                 'type' => 'journal', 'title' => $title, 'slug' => $slug, 'excerpt' => $excerpt,
                 'body' => "<p>{$excerpt}</p><p>Our workshop notes on living well with a handcrafted swing — the details that matter, and the small rituals a swing brings into a home.</p>",
-                'cover_image' => "assets/images/{$img}.svg", 'author' => 'Swing & Grain Studio',
+                'cover_image' => "assets/images/{$img}.svg", 'author' => 'TIK Swings Studio',
                 'status' => 'published', 'seo_title' => "{$title} | Journal", 'seo_description' => $excerpt,
                 'published_at' => date('Y-m-d H:i:s', strtotime("-{$i} weeks")),
                 'created_at' => $now, 'updated_at' => $now,

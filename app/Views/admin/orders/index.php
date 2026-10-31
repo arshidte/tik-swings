@@ -8,6 +8,14 @@
     <?php endforeach ?>
 </div>
 
+<form method="get" class="flex flex-wrap items-center gap-2 mb-5">
+    <?php if ($status): ?><input type="hidden" name="status" value="<?= esc($status, 'attr') ?>"><?php endif ?>
+    <input name="q" value="<?= esc($q, 'attr') ?>" placeholder="Search order number, email or phone…" aria-label="Search orders" class="field-input py-2 min-h-[40px] text-sm max-w-sm flex-1">
+    <button class="btn-outline btn-sm">Search</button>
+    <?php if ($q !== ''): ?><a href="<?= base_url('admin/orders' . ($status ? '?status=' . urlencode($status) : '')) ?>" class="text-sm text-wood hover:underline">Clear</a><?php endif ?>
+    <span class="text-sm text-muted ml-auto tabular-nums"><?= (int) $total ?> order<?= $total === 1 ? '' : 's' ?></span>
+</form>
+
 <div class="bg-surface rounded-lg border border-line overflow-hidden">
     <table class="w-full text-sm">
         <thead class="bg-sand/50 text-left text-muted">

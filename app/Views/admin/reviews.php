@@ -33,4 +33,5 @@
     <?php endforeach ?>
     <?php if (empty($reviews)): ?><p class="text-muted">No reviews.</p><?php endif ?>
 </div>
+<?php if ($pager && $pager->getPageCount() > 1): ?><div class="mt-6"><?= $pager->links('default', 'swing_pager') ?></div><?php endif ?>
 <?= $this->endSection() ?>

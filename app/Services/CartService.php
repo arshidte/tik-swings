@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\CartItemModel;
 use App\Models\CouponModel;
+use App\Models\ProductAddonModel;
 use App\Models\ProductModel;
 use App\Models\ProductVariantModel;
 
@@ -37,28 +38,78 @@ class CartService
     }
 
     // ------------------------------------------------------------------ add
-    public function add(int $productId, ?int $variantId, int $quantity, ?array $options = null): array
+    /**
+     * Add a product (and optionally its selected add-ons) to the cart.
+     *
+     * Every line is validated BEFORE anything is written, so a bad add-on
+     * never leaves the main product half-added. Add-ons follow the main
+     * product's quantity (one chain per swing).
+     *
+     * @param array $addons [['product_id' => int, 'variant_id' => ?int], ...]
+     */
+    public function add(int $productId, ?int $variantId, int $quantity, ?array $options = null, array $addons = []): array
     {
         $quantity = max(1, min(99, $quantity));
-        $product  = $this->products->where('status', 'active')->find($productId);
-        if (! $product) {
-            throw new \RuntimeException('This swing is currently unavailable.');
+        $lines    = [$this->resolveLine($productId, $variantId, false) + ['options' => $options]];
+
+        foreach (array_slice($addons, 0, 10) as $a) {
+            $aid = (int) ($a['product_id'] ?? 0);
+            if ($aid <= 0 || $aid === $productId) {
+                continue;
+            }
+            $avid    = ! empty($a['variant_id']) ? (int) $a['variant_id'] : null;
+            $lines[] = $this->resolveLine($aid, $avid, true) + ['options' => null];
+        }
+
+        $db = db_connect();
+        $db->transStart();
+        foreach ($lines as $line) {
+            $this->writeLine($line['product_id'], $line['variant_id'], $line['stock'], $quantity, $line['options']);
+        }
+        $db->transComplete();
+
+        return $this->snapshot(true);
+    }
+
+    /**
+     * Validate a product/variant pair and resolve its default variant + stock.
+     *
+     * @return array{product_id: int, variant_id: ?int, stock: int}
+     */
+    private function resolveLine(int $productId, ?int $variantId, bool $isAddon): array
+    {
+        $product = $this->products->where('status', 'active')->find($productId);
+        if (! $product || ($isAddon && $product['stock_status'] === 'out_of_stock')) {
+            throw new \RuntimeException($isAddon && $product
+                ? $product['name'] . ' is currently unavailable.'
+                : ($isAddon ? 'A selected add-on is currently unavailable.' : 'This swing is currently unavailable.'));
         }
 
         $variant = null;
         if ($variantId) {
-            $variant = $this->variants->where('product_id', $productId)->find($variantId);
+            $variant = $this->variants->where('product_id', $productId)->where('status', 'active')->find($variantId);
             if (! $variant) {
-                throw new \RuntimeException('Selected option is unavailable.');
+                throw new \RuntimeException($isAddon
+                    ? 'The selected option for ' . $product['name'] . ' is unavailable.'
+                    : 'Selected option is unavailable.');
             }
         } elseif ((int) $product['has_variants'] === 1) {
             $variant   = $this->variants->where('product_id', $productId)->where('is_default', 1)->first()
                 ?? $this->variants->where('product_id', $productId)->first();
-            $variantId = $variant['id'] ?? null;
+            $variantId = isset($variant['id']) ? (int) $variant['id'] : null;
         }
 
         $stock = $variant ? (int) $variant['stock'] : (int) $product['stock'];
+        if ($isAddon && $stock <= 0 && $product['stock_status'] !== 'made_to_order') {
+            throw new \RuntimeException($product['name'] . ' is out of stock.');
+        }
 
+        return ['product_id' => $productId, 'variant_id' => $variantId, 'stock' => $stock];
+    }
+
+    /** Insert or top-up a single cart line (DB for users, session for guests). */
+    private function writeLine(int $productId, ?int $variantId, int $stock, int $quantity, ?array $options): void
+    {
         if ($this->userId()) {
             $existing = $this->items->where('user_id', $this->userId())
                 ->where('product_id', $productId)
@@ -90,8 +141,6 @@ class CartService
             ];
             $this->session->set('cart', $cart);
         }
-
-        return $this->snapshot();
     }
 
     // -------------------------------------------------------------- update
@@ -122,7 +171,7 @@ class CartService
             }
         }
 
-        return $this->snapshot();
+        return $this->snapshot(true);
     }
 
     public function remove(string $lineId): array
@@ -138,7 +187,7 @@ class CartService
             $this->session->set('cart', $cart);
         }
 
-        return $this->snapshot();
+        return $this->snapshot(true);
     }
 
     public function clear(): void
@@ -189,12 +238,17 @@ class CartService
     // ------------------------------------------------------------- snapshot
     /**
      * Full cart snapshot with server-resolved prices and totals.
+     *
+     * Lines that are mapped add-ons of another product in the cart carry
+     * `addon_of` (the parent line id) and are ordered right after their
+     * parent. With $withSuggestions, `suggestions` lists add-ons of cart
+     * products that are not in the cart yet ("Don't forget" / "Pairs well with").
      */
-    public function snapshot(): array
+    public function snapshot(bool $withSuggestions = false): array
     {
         $lines = $this->rawLines();
         if ($lines === []) {
-            return ['count' => 0, 'subtotal' => 0, 'items' => [], 'discount' => 0, 'coupon' => null, 'shipping' => 0, 'total' => 0];
+            return ['count' => 0, 'subtotal' => 0, 'items' => [], 'discount' => 0, 'coupon' => null, 'shipping' => 0, 'total' => 0, 'suggestions' => []];
         }
 
         $productIds = array_values(array_unique(array_map(static fn ($l) => $l['product_id'], $lines)));
@@ -247,22 +301,92 @@ class CartService
                 'options'    => $l['options'],
                 'url'        => site_url('product/' . $p['slug']),
                 'stock'      => $variant ? (int) $variant['stock'] : (int) $p['stock'],
+                'addon_of'   => null,
             ];
         }
+
+        $addons = new ProductAddonModel();
+        $items  = $this->groupAddonLines($items, $addons);
 
         [$discount, $coupon] = $this->resolveDiscount($subtotal);
         $shipping = $this->shippingFor($subtotal);
         $total    = max(0, $subtotal - $discount) + $shipping;
 
+        $inCart = array_values(array_unique(array_column($items, 'product_id')));
+
+        // Suggested add-ons carry their parent's quantity, so "+ Add" can add
+        // one per swing in the cart.
+        $suggestions = [];
+        if ($withSuggestions) {
+            $qtyByProduct = [];
+            foreach ($items as $it) {
+                $qtyByProduct[$it['product_id']] = ($qtyByProduct[$it['product_id']] ?? 0) + $it['quantity'];
+            }
+            foreach ($addons->storefrontFor($inCart, $inCart, 3) as $s) {
+                $s['parent_qty'] = $qtyByProduct[$s['parent_id']] ?? 1;
+                $suggestions[]   = $s;
+            }
+        }
+
         return [
-            'count'    => $count,
-            'subtotal' => $subtotal,
-            'discount' => $discount,
-            'coupon'   => $coupon,
-            'shipping' => $shipping,
-            'total'    => $total,
-            'items'    => $items,
+            'count'       => $count,
+            'subtotal'    => $subtotal,
+            'discount'    => $discount,
+            'coupon'      => $coupon,
+            'shipping'    => $shipping,
+            'total'       => $total,
+            'items'       => $items,
+            'suggestions' => $suggestions,
         ];
+    }
+
+    /**
+     * Attach add-on lines to the line of their parent product (when the parent
+     * is in the cart) and order them directly after it. Purely presentational:
+     * prices are unaffected, and an add-on whose parent was removed simply
+     * becomes a normal line again.
+     */
+    private function groupAddonLines(array $items, ProductAddonModel $addons): array
+    {
+        $parents = $addons->parentsWithin(array_values(array_unique(array_column($items, 'product_id'))));
+        if ($parents === []) {
+            return $items;
+        }
+
+        // First cart line per product, among lines that are not add-ons themselves.
+        $isAddon     = array_fill_keys(array_keys($parents), true);
+        $lineOfRoot  = [];
+        foreach ($items as $it) {
+            if (! isset($isAddon[$it['product_id']])) {
+                $lineOfRoot[$it['product_id']] ??= $it['id'];
+            }
+        }
+
+        $children = [];
+        foreach ($items as &$it) {
+            foreach ($parents[$it['product_id']] ?? [] as $parentProductId) {
+                if (isset($lineOfRoot[$parentProductId])) {
+                    $it['addon_of']                             = $lineOfRoot[$parentProductId];
+                    $children[$lineOfRoot[$parentProductId]][] = $it['id'];
+                    break;
+                }
+            }
+        }
+        unset($it);
+
+        $byId    = array_column($items, null, 'id');
+        $ordered = [];
+        foreach ($items as $it) {
+            if ($it['addon_of'] !== null) {
+                continue;
+            }
+            $ordered[] = $it;
+            foreach ($children[$it['id']] ?? [] as $childId) {
+                $ordered[] = $byId[$childId];
+            }
+        }
+
+        return $ordered;
     }
 
     private function variantLabel(array $variant): string

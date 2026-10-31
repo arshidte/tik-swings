@@ -42,7 +42,8 @@ $accordions = array_filter([
 <div class="container-page py-5 sm:py-8"
      data-product-root data-product-id="<?= (int) $p['id'] ?>"
      data-has-variants="<?= ! empty($p['variants']) ? '1' : '0' ?>"
-     data-default-variant="<?= (int) ($defaultVariant['id'] ?? 0) ?>">
+     data-default-variant="<?= (int) ($defaultVariant['id'] ?? 0) ?>"
+     data-base-price="<?= esc((string) ($defaultVariant['price'] ?? $p['price']), 'attr') ?>">
 
     <!-- Breadcrumbs -->
     <nav aria-label="Breadcrumb" class="text-sm text-muted mb-5">
@@ -119,7 +120,7 @@ $accordions = array_filter([
                 <div class="mt-6 space-y-5" data-variant-options>
                     <?php foreach ($optionGroups as $groupName => $group): ?>
                         <div data-option-group data-attribute="<?= esc($group['slug'], 'attr') ?>">
-                            <p class="text-sm font-medium mb-2"><?= esc($groupName) ?>: <span class="text-muted" data-option-selected></span></p>
+                            <p class="text-xs font-medium mb-2"><?= esc($groupName) ?>: <span class="text-muted" data-option-selected></span></p>
                             <div class="flex flex-wrap gap-2">
                                 <?php foreach ($group['values'] as $val): ?>
                                     <button type="button" class="relative min-h-[40px] px-4 rounded-md border border-line text-sm hover:border-ink transition data-[selected=true]:border-ink data-[selected=true]:bg-ink data-[selected=true]:text-bg"
@@ -130,9 +131,80 @@ $accordions = array_filter([
                                     </button>
                                 <?php endforeach ?>
                             </div>
+                            <?php if (strtolower($groupName) === 'size'): ?>
+                                <div class="mt-3 flex gap-2.5 rounded-lg bg-amber-50 border border-amber-200 px-3.5 py-3 text-xs text-amber-900 leading-relaxed">
+                                    <svg class="w-4 h-4 mt-0.5 shrink-0 text-amber-500" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" d="M12 8v4m0 4h.01"/></svg>
+                                    <div>
+                                        <p class="font-medium text-amber-800 mb-1">How to choose the right size?</p>
+                                        <p>Measure the available space (Wall to Wall or Wall to Pillar). A minimum gap of <strong>15 cm on each side</strong> is required for safe swinging.</p>
+                                        <p class="mt-1 text-amber-700">Example: If your space is <strong>150 cm</strong>, the ideal swing size is <strong>150 − (15×2) = 120 cm</strong>.</p>
+                                    </div>
+                                </div>
+                            <?php endif ?>
                         </div>
                     <?php endforeach ?>
                 </div>
+            <?php endif ?>
+
+            <!-- Add-ons: "Complete your swing" (admin-mapped, optional, each with its own variants) -->
+            <?php if (! empty($addons) && $inStock): ?>
+                <section class="mt-7 rounded-lg border border-line overflow-hidden" data-addons aria-labelledby="addons-heading">
+                    <div class="px-4 pt-4 pb-1">
+                        <h2 id="addons-heading" class="text-sm font-medium">Complete your swing</h2>
+                        <p class="text-xs text-muted mt-0.5">Tick what you need — it's added to your cart together with the swing.</p>
+                    </div>
+                    <ul class="divide-y divide-line">
+                        <?php foreach ($addons as $a):
+                            $aid       = (int) $a['product_id'];
+                            $defValues = [];
+                            foreach ($a['variants'] as $av) {
+                                if ($av['id'] === $a['variant_id']) { $defValues = $av['values']; break; }
+                            }
+                        ?>
+                            <li class="p-4 transition-colors has-[[data-addon-check]:checked]:bg-sand/40" data-addon
+                                data-product-id="<?= $aid ?>" data-variant-id="<?= (int) $a['variant_id'] ?>" data-price="<?= esc((string) $a['price'], 'attr') ?>">
+                                <div class="flex gap-3 items-start">
+                                    <input type="checkbox" id="addon-<?= $aid ?>" class="mt-4 w-5 h-5 shrink-0 rounded border-line text-wood focus:ring-wood/30 cursor-pointer"
+                                           data-addon-check <?= $a['is_preselected'] ? 'checked' : '' ?>>
+                                    <label for="addon-<?= $aid ?>" class="shrink-0 cursor-pointer">
+                                        <img src="<?= esc($a['image'], 'attr') ?>" alt="" width="56" height="56" loading="lazy" class="w-14 h-14 rounded-md object-cover bg-sand" data-addon-image>
+                                    </label>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex items-start justify-between gap-3">
+                                            <label for="addon-<?= $aid ?>" class="text-sm font-medium leading-snug cursor-pointer"><?= esc($a['name']) ?></label>
+                                            <span class="text-sm tabular-nums whitespace-nowrap" data-addon-price>+<?= price($a['price']) ?></span>
+                                        </div>
+                                        <a href="<?= esc($a['url'], 'attr') ?>" target="_blank" rel="noopener" class="text-xs text-muted hover:text-wood hover:underline underline-offset-2">View details</a>
+
+                                        <?php foreach ($a['groups'] as $g): ?>
+                                            <div class="mt-2.5" data-addon-group data-attribute="<?= esc($g['slug'], 'attr') ?>">
+                                                <p class="text-xs text-muted mb-1.5"><?= esc($g['name']) ?>: <span class="text-ink" data-addon-selected></span></p>
+                                                <div class="flex flex-wrap gap-1.5">
+                                                    <?php foreach ($g['values'] as $gv): $sel = in_array($gv['id'], $defValues, true); ?>
+                                                        <button type="button"
+                                                                class="min-h-[32px] px-3 rounded-md border border-line text-xs hover:border-ink transition disabled:opacity-40 disabled:line-through disabled:cursor-not-allowed data-[selected=true]:border-ink data-[selected=true]:bg-ink data-[selected=true]:text-bg"
+                                                                data-addon-value data-value-id="<?= (int) $gv['id'] ?>" data-value-label="<?= esc($gv['label'], 'attr') ?>"
+                                                                data-selected="<?= $sel ? 'true' : 'false' ?>" aria-pressed="<?= $sel ? 'true' : 'false' ?>">
+                                                            <?php if (! empty($gv['swatch'])): ?><span class="inline-block w-3 h-3 rounded-full mr-1 align-middle border border-black/10" style="background:<?= esc($gv['swatch'], 'attr') ?>"></span><?php endif ?>
+                                                            <?= esc($gv['label']) ?>
+                                                        </button>
+                                                    <?php endforeach ?>
+                                                </div>
+                                            </div>
+                                        <?php endforeach ?>
+                                    </div>
+                                </div>
+                                <?php if (! empty($a['variants'])): ?>
+                                    <script type="application/json" data-addon-variants><?= json_encode($a['variants'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?></script>
+                                <?php endif ?>
+                            </li>
+                        <?php endforeach ?>
+                    </ul>
+                    <div class="px-4 py-3 border-t border-line bg-sand/30 flex items-center justify-between gap-3 text-sm" data-addon-summary>
+                        <span class="text-muted" data-addon-summary-label>Swing only</span>
+                        <span class="font-medium tabular-nums" data-addon-total></span>
+                    </div>
+                </section>
             <?php endif ?>
 
             <!-- Quantity + CTAs -->
@@ -185,7 +257,9 @@ $accordions = array_filter([
 
             <!-- Accordions (§25) -->
             <div class="mt-8 divide-y divide-line border-t border-line" data-accordions>
-                <?php foreach ($accordions as $heading => $body): $id = url_title($heading, '-', true); ?>
+                <?php foreach ($accordions as $heading => $body):
+                    if (empty(trim(strip_tags((string) $body)))) continue;
+                    $id = url_title($heading, '-', true); ?>
                     <div>
                         <h3>
                             <button type="button" class="w-full flex items-center justify-between py-4 text-left font-medium"
@@ -196,7 +270,7 @@ $accordions = array_filter([
                         </h3>
                         <div id="acc-<?= $id ?>" class="grid grid-rows-[0fr] transition-all duration-300 ease-out-soft" data-accordion-panel>
                             <div class="overflow-hidden">
-                                <div class="pb-5 text-muted leading-relaxed max-w-prose"><?= nl2br(esc($body)) ?></div>
+                                <div class="pb-5 text-muted leading-relaxed max-w-prose <?= $heading === 'Description' ? 'product-description' : '' ?>"><?= $heading === 'Description' ? $body : nl2br(esc($body)) ?></div>
                             </div>
                         </div>
                     </div>
@@ -240,22 +314,17 @@ $accordions = array_filter([
     <section id="reviews" class="mt-16 lg:mt-24 border-t border-line pt-12">
         <h2 class="text-h2 font-display mb-8">What Our Customers Say</h2>
         <?php if (! empty($reviews)): ?>
-            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <?php foreach ($reviews as $r): ?>
-                    <figure class="card p-6">
-                        <?= star_row((float) $r['rating']) ?>
-                        <?php if ($r['title']): ?><figcaption class="font-display text-lg mt-3"><?= esc($r['title']) ?></figcaption><?php endif ?>
-                        <blockquote class="text-muted text-[15px] mt-2 leading-relaxed"><?= esc($r['body']) ?></blockquote>
-                        <div class="mt-4 flex items-center gap-3 text-sm">
-                            <span class="w-9 h-9 rounded-full bg-wood/15 text-wood-dark font-medium flex items-center justify-center"><?= esc(strtoupper(substr($r['author_name'], 0, 1))) ?></span>
-                            <div>
-                                <p class="font-medium leading-tight"><?= esc($r['author_name']) ?></p>
-                                <p class="text-subtle text-xs"><?= esc($r['city']) ?><?php if ($r['verified_purchase']): ?> · <span class="text-success">Verified</span><?php endif ?></p>
-                            </div>
-                        </div>
-                    </figure>
-                <?php endforeach ?>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6" data-reviews-grid>
+                <?= view('frontend/partials/review_cards', ['reviews' => $reviews]) ?>
             </div>
+            <?php if ($reviewTotal > count($reviews)): ?>
+                <div class="mt-8 text-center">
+                    <button type="button" class="btn-outline" data-reviews-more data-product-id="<?= (int) $p['id'] ?>"
+                            data-offset="<?= count($reviews) ?>" data-total="<?= (int) $reviewTotal ?>">
+                        Show more reviews <span class="text-muted" data-reviews-remaining>(<?= $reviewTotal - count($reviews) ?> more)</span>
+                    </button>
+                </div>
+            <?php endif ?>
         <?php else: ?>
             <p class="text-muted">No reviews yet — be the first to share how this swing lives in your home.</p>
         <?php endif ?>

@@ -3,7 +3,7 @@
 <?= $this->section('content') ?>
 <section class="relative bg-ink text-bg py-20 sm:py-28 text-center">
     <div class="relative container-page">
-        <h1 class="text-display font-display max-w-3xl mx-auto reveal">Return &amp; Refunds</h1>
+        <h1 class="text-display font-display text-bg max-w-3xl mx-auto reveal">Return &amp; Refunds</h1>
         <p class="mt-5 text-lg text-bg/80 max-w-2xl mx-auto reveal">Carefully read our return and refund policy to understand our process.</p>
     </div>
 </section>

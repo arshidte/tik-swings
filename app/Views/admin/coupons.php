@@ -18,6 +18,7 @@
                 <?php if (empty($coupons)): ?><tr><td colspan="5" class="px-4 py-8 text-center text-muted">No coupons yet.</td></tr><?php endif ?>
             </tbody>
         </table>
+        <?php if ($pager->getPageCount() > 1): ?><div class="p-4 border-t border-line"><?= $pager->links('default', 'swing_pager') ?></div><?php endif ?>
     </div>
     <div class="bg-surface rounded-lg border border-line p-5">
         <h2 class="font-medium mb-4">New coupon</h2>

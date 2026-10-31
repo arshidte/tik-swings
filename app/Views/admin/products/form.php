@@ -142,8 +142,43 @@ $action = $p ? base_url('admin/products/update/' . $p['id']) : base_url('admin/p
                     </div>
                 </div>
                 <p class="field-help -mt-1 mb-3" data-variant-empty>No variants yet. Add options above and click <strong>Generate from options</strong>.</p>
-                <div class="overflow-x-auto">
-                    <div data-variant-rows class="min-w-full space-y-2"></div>
+
+                <!-- Filter + bulk edit (shown once variants exist). No `name`s: never submitted. -->
+                <div class="space-y-2 mb-3" data-variant-tools hidden>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <input type="search" data-vf-search placeholder="Filter by option or SKU…" aria-label="Filter variants"
+                               class="field-input !py-1.5 !text-sm flex-1 min-w-[10rem]">
+                        <div class="contents" data-vf-attrs></div>
+                        <button type="button" data-vf-clear class="text-xs text-wood hover:underline hidden">Clear filters</button>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2 rounded-md bg-sand/40 border border-line px-3 py-2">
+                        <span class="text-xs font-medium whitespace-nowrap">Bulk edit <span class="text-muted font-normal" data-bulk-scope></span></span>
+                        <input type="number" min="0" data-bulk-stock placeholder="Stock" aria-label="Bulk stock" class="field-input !py-1.5 !text-sm w-24">
+                        <input type="number" min="0" step="0.01" data-bulk-price placeholder="Price ₹" aria-label="Bulk price" class="field-input !py-1.5 !text-sm w-28">
+                        <select data-bulk-status aria-label="Bulk status" class="field-input !py-1.5 !text-sm w-32">
+                            <option value="">Status…</option><option value="active">Active</option><option value="inactive">Inactive</option>
+                        </select>
+                        <button type="button" data-bulk-apply class="text-sm px-3 py-1.5 rounded-md border border-ink hover:bg-ink hover:text-bg transition">Apply</button>
+                        <span class="text-xs text-muted">Leave a field blank to keep it unchanged.</span>
+                    </div>
+                </div>
+
+                <div class="overflow-auto max-h-[65vh] rounded-md border border-line" data-variant-scroll hidden>
+                    <table class="w-full text-sm">
+                        <thead class="sticky top-0 z-10 bg-surface shadow-[0_1px_0_rgb(var(--color-line))] text-left text-xs text-muted">
+                            <tr>
+                                <th class="px-2 py-2 font-medium w-12 text-center" title="Default variant">Default</th>
+                                <th class="px-2 py-2 font-medium">Variant</th>
+                                <th class="px-2 py-2 font-medium">SKU</th>
+                                <th class="px-2 py-2 font-medium">Stock</th>
+                                <th class="px-2 py-2 font-medium">Price</th>
+                                <th class="px-2 py-2 font-medium">Status</th>
+                                <th class="px-2 py-2 w-8"><span class="sr-only">Remove</span></th>
+                            </tr>
+                        </thead>
+                        <tbody data-variant-rows class="divide-y divide-line"></tbody>
+                    </table>
+                    <p class="hidden px-3 py-6 text-center text-sm text-muted" data-vf-none>No variants match these filters.</p>
                 </div>
             </div>
 
@@ -151,6 +186,39 @@ $action = $p ? base_url('admin/products/update/' . $p['id']) : base_url('admin/p
                 <?php foreach (($attributeNames ?? []) as $an): ?><option value="<?= esc($an, 'attr') ?>"></option><?php endforeach ?>
             </datalist>
             <script type="application/json" data-variant-state><?= json_encode($variantState, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?></script>
+        </div>
+
+        <!-- Add-ons: "Complete your swing" -->
+        <?php
+        $addonState = array_map(static fn ($a) => [
+            'id'           => (int) $a['addon_product_id'],
+            'name'         => $a['name'],
+            'sku'          => $a['sku'],
+            'price'        => price($a['price']),
+            'status'       => $a['status'],
+            'has_variants' => (int) $a['has_variants'] === 1,
+            'image'        => $a['image'],
+            'preselected'  => (int) $a['is_preselected'] === 1,
+        ], $addons ?? []);
+        ?>
+        <div class="bg-surface rounded-lg border border-line p-5 space-y-4" data-addon-editor data-exclude="<?= (int) ($p['id'] ?? 0) ?>">
+            <input type="hidden" name="addons_present" value="1">
+            <div>
+                <h2 class="font-medium">Add-ons <span class="text-muted font-normal">(Complete your swing)</span></h2>
+                <p class="field-help !mt-0.5">Products offered alongside this one on its product page and in the cart — e.g. a hanging chain or hook kit. Customers choose the add-on's variant themselves; its default variant is pre-selected. Tick <em>Pre-select</em> for essentials the swing can't be used without.</p>
+            </div>
+
+            <div class="relative">
+                <label class="field-label" for="addon-search">Add a product</label>
+                <input id="addon-search" type="search" autocomplete="off" class="field-input" placeholder="Search by name or SKU…" data-addon-search
+                       role="combobox" aria-expanded="false" aria-controls="addon-results" aria-autocomplete="list">
+                <ul id="addon-results" role="listbox" class="hidden absolute z-20 left-0 right-0 mt-1 max-h-72 overflow-y-auto rounded-md border border-line bg-surface shadow-lift" data-addon-results></ul>
+            </div>
+
+            <p class="field-help" data-addon-empty>No add-ons yet.</p>
+            <ul class="space-y-2" data-addon-list></ul>
+
+            <script type="application/json" data-addon-state><?= json_encode($addonState, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?></script>
         </div>
     </div>
 
@@ -267,5 +335,6 @@ $action = $p ? base_url('admin/products/update/' . $p['id']) : base_url('admin/p
 <?= $this->endSection() ?>
 
 <?= $this->section('scripts') ?>
-<script src="<?= base_url('assets/js/admin_variants.js') ?>?v=5"></script>
+<script src="<?= base_url('assets/js/admin_variants.js') ?>?v=6"></script>
+<script src="<?= base_url('assets/js/admin_addons.js') ?>?v=1"></script>
 <?= $this->endSection() ?>

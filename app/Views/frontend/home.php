@@ -69,37 +69,46 @@ $trust = [
 <!-- ========================= COLLECTIONS (§10) ====================== -->
 <section class="section">
     <div class="container-page">
-        <div class="flex items-end justify-between gap-4 mb-8 reveal">
+        <div class="flex items-end justify-between gap-4 mb-6 reveal">
             <div>
                 <p class="eyebrow">Collections</p>
-                <h2 class="mt-2 text-h2">Find Your Kind of Swing.</h2>
+                <h2 class="mt-1 text-h2">Find Your Kind of Swing.</h2>
             </div>
             <a href="<?= base_url('shop') ?>" class="hidden sm:inline-flex items-center gap-1 text-sm font-medium text-wood hover:text-wood-dark shrink-0">
                 View all <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" d="M5 12h14m-6-6 6 6-6 6"/></svg>
             </a>
         </div>
 
-        <div class="flex gap-4 overflow-x-auto no-scrollbar snap-x snap-mandatory sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:overflow-visible -mx-5 px-5 sm:mx-0 sm:px-0">
+        <div class="flex gap-5 overflow-x-auto no-scrollbar snap-x snap-mandatory -mx-5 px-5 sm:mx-0 sm:px-0 sm:flex-wrap sm:justify-start pb-2">
             <?php foreach ($categories as $i => $c): ?>
                 <a href="<?= base_url('category/' . $c['slug']) ?>"
-                   class="group relative shrink-0 w-[76%] sm:w-auto snap-start overflow-hidden rounded-lg reveal" data-reveal-delay="<?= ($i % 4) * 60 ?>">
-                    <div class="aspect-[4/5] overflow-hidden bg-sand">
-                        <img src="<?= esc(product_image($c['image'], 'categories/classic-swings.svg'), 'attr') ?>" alt="<?= esc($c['name'], 'attr') ?> collection"
-                             loading="lazy" decoding="async" width="900" height="1100"
-                             class="w-full h-full object-cover transition-transform duration-500 ease-out-soft group-hover:scale-[1.05]">
+                   class="group flex flex-col items-center gap-2.5 shrink-0 snap-start reveal" data-reveal-delay="<?= ($i % 6) * 50 ?>">
+                    <!-- Thumbnail circle -->
+                    <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden bg-sand ring-2 ring-transparent group-hover:ring-wood transition-all duration-300 shadow-soft group-hover:shadow-lift">
+                        <img src="<?= esc(product_image($c['image'], 'categories/classic-swings.svg'), 'attr') ?>"
+                             alt="<?= esc($c['name'], 'attr') ?>"
+                             loading="lazy" decoding="async" width="96" height="96"
+                             class="w-full h-full object-cover transition-transform duration-500 ease-out-soft group-hover:scale-110">
                     </div>
-                    <div class="absolute inset-0 bg-gradient-to-t from-ink/70 via-transparent to-transparent"></div>
-                    <div class="absolute inset-x-0 bottom-0 p-5 flex items-end justify-between text-bg">
-                        <div>
-                            <h3 class="font-display text-xl leading-tight"><?= esc($c['name']) ?></h3>
-                            <p class="text-sm text-bg/70 tabular-nums"><?= (int) $c['product_count'] ?> designs</p>
-                        </div>
-                        <span class="w-9 h-9 rounded-full bg-bg/15 backdrop-blur flex items-center justify-center transition-transform duration-300 group-hover:translate-x-1">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" d="M5 12h14m-6-6 6 6-6 6"/></svg>
-                        </span>
+                    <!-- Label -->
+                    <div class="text-center">
+                        <p class="text-xs font-medium text-ink group-hover:text-wood transition-colors leading-tight max-w-[5rem]"><?= esc($c['name']) ?></p>
+                        <p class="text-[10px] text-muted tabular-nums mt-0.5"><?= (int) $c['product_count'] ?> designs</p>
                     </div>
                 </a>
             <?php endforeach ?>
+            <!-- View All chip -->
+            <a href="<?= base_url('shop') ?>"
+               class="group flex flex-col items-center gap-2.5 shrink-0 snap-start sm:hidden reveal">
+                <div class="w-20 h-20 rounded-2xl overflow-hidden bg-sand ring-2 ring-transparent group-hover:ring-wood transition-all duration-300 shadow-soft flex items-center justify-center">
+                    <svg class="w-6 h-6 text-muted group-hover:text-wood transition-colors" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24">
+                        <circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>
+                    </svg>
+                </div>
+                <div class="text-center">
+                    <p class="text-xs font-medium text-ink group-hover:text-wood transition-colors leading-tight">View All</p>
+                </div>
+            </a>
         </div>
     </div>
 </section>

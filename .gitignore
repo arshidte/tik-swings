@@ -39,14 +39,22 @@ $RECYCLE.BIN/
 #-------------------------
 # Environment Files
 #-------------------------
-# These should never be under version control,
-# as it poses a security risk.
+# These should never be under version control, as it poses a security risk.
 .env
+.env.*
+.env.local
 .vagrant
 Vagrantfile
 
 #-------------------------
-# Temporary Files
+# Database Exports & Dumps
+#-------------------------
+*.sql
+*.sql.gz
+*.sqlite
+
+#-------------------------
+# Temporary / Runtime Files (CI4)
 #-------------------------
 /writable/cache/*
 !/writable/cache/index.html
@@ -66,37 +74,46 @@ Vagrantfile
 php_errors.log
 
 #-------------------------
-# User Guide Temp Files
+# Public Uploads
 #-------------------------
+# Ignore uploaded files but preserve directory structure
+/public/uploads/*
+!/public/uploads/.gitkeep
+!/public/uploads/index.html
+
+#-------------------------
+# Dependencies & Package Managers
+#-------------------------
+# Composer
+vendor/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+#-------------------------
+# Test & CI Files
+#-------------------------
+/tests/coverage*
+/phpunit
+/phpunit.xml
+/results/
+
+# User Guide Temp Files
 /user_guide_src/build/*
 /user_guide_src/cilexer/build/*
 /user_guide_src/cilexer/dist/*
 /user_guide_src/cilexer/pycilexer.egg-info/*
 
 #-------------------------
-# Test Files
-#-------------------------
-/tests/coverage*
-
-# Don't save phpunit under version control.
-/phpunit
-
-#-------------------------
-# Composer
-#-------------------------
-vendor/
-
-#-------------------------
 # IDE / Development Files
 #-------------------------
-
-# Modules Testing
 _modules/*
-
-# phpenv local config
 .php-version
 
-# Jetbrains editors (PHPStorm, etc)
+# Jetbrains
 .idea/
 *.iml
 
@@ -121,6 +138,3 @@ _modules/*
 
 # Visual Studio Code
 .vscode/
-
-/results/
-/phpunit.xml

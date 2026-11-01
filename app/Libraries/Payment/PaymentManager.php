@@ -20,9 +20,8 @@ class PaymentManager
             $methods[$razorpay->key()] = $razorpay;
         }
 
-        // COD disabled for now — re-enable by uncommenting this block.
-        // $cod = new CodPaymentService();
-        // $methods[$cod->key()] = $cod;
+        $cod = new CodPaymentService();
+        $methods[$cod->key()] = $cod;
 
         return $methods;
     }

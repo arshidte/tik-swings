@@ -16,8 +16,8 @@ class RazorpayPaymentService implements PaymentServiceInterface
 
     public function __construct()
     {
-        $this->keyId     = (string) (getenv('RAZORPAY_KEY_ID') ?: setting('razorpay_key_id', ''));
-        $this->keySecret = (string) (getenv('RAZORPAY_KEY_SECRET') ?: setting('razorpay_key_secret', ''));
+        $this->keyId     = (string) (env('RAZORPAY_KEY_ID') ?: (getenv('RAZORPAY_KEY_ID') ?: setting('razorpay_key_id', '')));
+        $this->keySecret = (string) (env('RAZORPAY_KEY_SECRET') ?: (getenv('RAZORPAY_KEY_SECRET') ?: setting('razorpay_key_secret', '')));
     }
 
     public function key(): string
@@ -117,6 +117,36 @@ class RazorpayPaymentService implements PaymentServiceInterface
         $expected = hash_hmac('sha256', $orderId . '|' . $paymentId, $this->keySecret);
 
         return hash_equals($expected, $signature);
+    }
+
+    /**
+     * Fetch payment details from Razorpay API for server-side reconciliation (F-002).
+     */
+    public function fetchPayment(string $paymentId): ?array
+    {
+        if (! $this->isConfigured() || empty($paymentId)) {
+            return null;
+        }
+
+        try {
+            $client = \Config\Services::curlrequest([
+                'baseURI'     => 'https://api.razorpay.com/v1/',
+                'http_errors' => false,
+                'timeout'     => 15,
+            ]);
+
+            $response = $client->get('payments/' . urlencode($paymentId), [
+                'auth' => [$this->keyId, $this->keySecret],
+            ]);
+
+            if ($response->getStatusCode() === 200) {
+                return json_decode((string) $response->getBody(), true) ?: null;
+            }
+        } catch (\Throwable $e) {
+            log_message('error', 'Razorpay payment fetch error: ' . $e->getMessage());
+        }
+
+        return null;
     }
 
     public function isOnline(): bool

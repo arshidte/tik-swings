@@ -56,19 +56,23 @@ class ProductModel extends Model
         }
         $ids    = array_column($products, 'id');
         $images = db_connect()->table('product_images')
-            ->select('product_id, image, alt_text, is_primary')
+            ->select('product_id, image, alt_text, is_primary, is_hover')
             ->whereIn('product_id', $ids)
             ->orderBy('is_primary', 'DESC')
             ->orderBy('sort_order', 'ASC')
+            ->orderBy('id', 'ASC')
             ->get()->getResultArray();
 
+        // Card photo = the one flagged is_primary (admin's choice), falling
+        // back to the first photo. Hover photo = the one flagged is_hover; no
+        // flag means no hover swap.
         $primary   = [];
         $secondary = [];
         foreach ($images as $img) {
             $pid = $img['product_id'];
             if (! isset($primary[$pid])) {
                 $primary[$pid] = $img;
-            } elseif (! isset($secondary[$pid])) {
+            } elseif (! empty($img['is_hover']) && ! isset($secondary[$pid])) {
                 $secondary[$pid] = $img;
             }
         }

@@ -88,6 +88,13 @@ $ship = $order['shipping_address'] ? json_decode($order['shipping_address'], tru
             <?php endif ?>
 
             <a href="<?= esc(whatsapp_link('Hi, I have a question about order ' . $order['order_number']), 'attr') ?>" target="_blank" rel="noopener" class="btn-outline btn-block">Need help with this order?</a>
+
+            <?php if (in_array($order['status'], ['pending', 'confirmed'], true)): ?>
+                <form method="post" action="<?= base_url('account/orders/' . $order['order_number'] . '/cancel') ?>" onsubmit="return confirm('Are you sure you want to cancel this order? This cannot be undone.');">
+                    <?= csrf_field() ?>
+                    <button type="submit" class="btn-outline btn-block text-danger border-danger/30 hover:bg-danger/10 hover:border-danger transition">Cancel Order</button>
+                </form>
+            <?php endif ?>
         </aside>
     </div>
 </div>

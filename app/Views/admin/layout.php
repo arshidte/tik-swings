@@ -21,6 +21,9 @@ $current = uri_string();
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="<?= csrf_hash() ?>">
     <title><?= esc($title ?? 'Admin') ?> · <?= esc(store_name()) ?></title>
+    <link rel="icon" href="<?= base_url('favicon.ico') ?>" sizes="32x32">
+    <link rel="icon" href="<?= base_url('favicon-128.png') ?>" type="image/png" sizes="128x128">
+    <link rel="apple-touch-icon" href="<?= base_url('favicon-128.png') ?>">
     <link rel="stylesheet" href="<?= base_url('assets/css/app.css') ?>">
 </head>
 <body class="bg-sand/40 text-ink font-sans min-h-dvh">

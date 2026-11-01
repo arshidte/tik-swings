@@ -39,14 +39,14 @@ $accordions = array_filter([
 ]);
 ?>
 
-<div class="container-page py-5 sm:py-8"
+<div class="container-page py-4 sm:py-5"
      data-product-root data-product-id="<?= (int) $p['id'] ?>"
      data-has-variants="<?= ! empty($p['variants']) ? '1' : '0' ?>"
      data-default-variant="<?= (int) ($defaultVariant['id'] ?? 0) ?>"
      data-base-price="<?= esc((string) ($defaultVariant['price'] ?? $p['price']), 'attr') ?>">
 
     <!-- Breadcrumbs -->
-    <nav aria-label="Breadcrumb" class="text-sm text-muted mb-5">
+    <nav aria-label="Breadcrumb" class="text-sm text-muted mb-3 sm:mb-4">
         <ol class="flex items-center gap-2 flex-wrap">
             <li><a href="<?= base_url('/') ?>" class="hover:text-wood">Home</a></li>
             <li aria-hidden="true">/</li>
@@ -90,20 +90,20 @@ $accordions = array_filter([
         </div>
 
         <!-- ===================== INFO (§23) ===================== -->
-        <div class="mt-8 lg:mt-0">
+        <div class="mt-6 lg:mt-0">
             <?php if (! empty($p['wood_type'])): ?><p class="eyebrow"><?= esc($p['wood_type']) ?> · <?= esc($p['finish']) ?> finish</p><?php endif ?>
-            <h1 class="mt-2 text-h1 font-display leading-tight"><?= esc($p['name']) ?></h1>
+            <h1 class="mt-1.5 font-display leading-tight text-[1.625rem] sm:text-3xl lg:text-[2rem]"><?= esc($p['name']) ?></h1>
 
             <?php if ((int) $p['rating_count'] > 0): ?>
-                <div class="flex items-center gap-2 mt-3">
+                <div class="flex items-center gap-2 mt-2">
                     <?= star_row((float) $p['rating_avg']) ?>
                     <a href="#reviews" class="text-sm text-muted hover:text-wood"><?= number_format($p['rating_avg'], 1) ?> · <?= (int) $p['rating_count'] ?> reviews</a>
                 </div>
             <?php endif ?>
 
             <!-- Price -->
-            <div class="flex items-baseline gap-3 mt-5">
-                <span class="text-2xl sm:text-3xl font-display tabular-nums" data-price><?= price($p['price']) ?></span>
+            <div class="flex items-baseline gap-3 mt-3">
+                <span class="text-2xl font-display tabular-nums" data-price><?= price($defaultVariant['price'] ?? $p['price']) ?></span>
                 <?php if ($discount > 0): ?>
                     <span class="text-lg text-subtle line-through tabular-nums" data-compare-price><?= price($p['compare_price']) ?></span>
                     <span class="badge-sale" data-discount-badge>-<?= $discount ?>%</span>
@@ -112,18 +112,18 @@ $accordions = array_filter([
             <p class="text-xs text-muted mt-1">Inclusive of all taxes · <span data-sku>SKU: <?= esc($defaultVariant['sku'] ?? $p['sku']) ?></span></p>
 
             <?php if (! empty($p['short_description'])): ?>
-                <p class="mt-5 text-muted leading-relaxed max-w-prose"><?= esc($p['short_description']) ?></p>
+                <p class="mt-3 text-muted leading-relaxed max-w-prose line-clamp-2" title="<?= esc($p['short_description'], 'attr') ?>"><?= esc($p['short_description']) ?></p>
             <?php endif ?>
 
             <!-- Variant options (§15) -->
             <?php if (! empty($optionGroups)): ?>
-                <div class="mt-6 space-y-5" data-variant-options>
+                <div class="mt-4 space-y-3" data-variant-options>
                     <?php foreach ($optionGroups as $groupName => $group): ?>
                         <div data-option-group data-attribute="<?= esc($group['slug'], 'attr') ?>">
-                            <p class="text-xs font-medium mb-2"><?= esc($groupName) ?>: <span class="text-muted" data-option-selected></span></p>
+                            <p class="text-xs font-medium mb-1.5"><?= esc($groupName) ?>: <span class="text-muted" data-option-selected></span></p>
                             <div class="flex flex-wrap gap-2">
                                 <?php foreach ($group['values'] as $val): ?>
-                                    <button type="button" class="relative min-h-[40px] px-4 rounded-md border border-line text-sm hover:border-ink transition data-[selected=true]:border-ink data-[selected=true]:bg-ink data-[selected=true]:text-bg"
+                                    <button type="button" class="relative min-h-[40px] lg:min-h-[36px] px-4 rounded-md border border-line text-sm hover:border-ink transition data-[selected=true]:border-ink data-[selected=true]:bg-ink data-[selected=true]:text-bg"
                                             data-option-value data-value-id="<?= (int) $val['id'] ?>" data-value-label="<?= esc($val['value'], 'attr') ?>">
                                         <?php if (! empty($val['swatch'])): ?><span class="inline-block w-3.5 h-3.5 rounded-full mr-1.5 align-middle border border-black/10" style="background:<?= esc($val['swatch'], 'attr') ?>"></span><?php endif ?>
                                         <?= esc($val['value']) ?>
@@ -132,14 +132,17 @@ $accordions = array_filter([
                                 <?php endforeach ?>
                             </div>
                             <?php if (strtolower($groupName) === 'size'): ?>
-                                <div class="mt-3 flex gap-2.5 rounded-lg bg-amber-50 border border-amber-200 px-3.5 py-3 text-xs text-amber-900 leading-relaxed">
-                                    <svg class="w-4 h-4 mt-0.5 shrink-0 text-amber-500" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" d="M12 8v4m0 4h.01"/></svg>
-                                    <div>
-                                        <p class="font-medium text-amber-800 mb-1">How to choose the right size?</p>
+                                <details class="mt-2 group rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-900">
+                                    <summary class="flex items-center gap-2 px-3 py-2 cursor-pointer select-none font-medium text-amber-800 list-none [&::-webkit-details-marker]:hidden">
+                                        <svg class="w-4 h-4 shrink-0 text-amber-500" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" d="M12 8v4m0 4h.01"/></svg>
+                                        How to choose the right size?
+                                        <svg class="w-4 h-4 ml-auto transition-transform group-open:rotate-180" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" d="m6 9 6 6 6-6"/></svg>
+                                    </summary>
+                                    <div class="px-3 pb-3 leading-relaxed">
                                         <p>Measure the available space (Wall to Wall or Wall to Pillar). A minimum gap of <strong>15 cm on each side</strong> is required for safe swinging.</p>
                                         <p class="mt-1 text-amber-700">Example: If your space is <strong>150 cm</strong>, the ideal swing size is <strong>150 − (15×2) = 120 cm</strong>.</p>
                                     </div>
-                                </div>
+                                </details>
                             <?php endif ?>
                         </div>
                     <?php endforeach ?>
@@ -148,10 +151,10 @@ $accordions = array_filter([
 
             <!-- Add-ons: "Complete your swing" (admin-mapped, optional, each with its own variants) -->
             <?php if (! empty($addons) && $inStock): ?>
-                <section class="mt-7 rounded-lg border border-line overflow-hidden" data-addons aria-labelledby="addons-heading">
-                    <div class="px-4 pt-4 pb-1">
-                        <h2 id="addons-heading" class="text-sm font-medium">Complete your swing</h2>
-                        <p class="text-xs text-muted mt-0.5">Tick what you need — it's added to your cart together with the swing.</p>
+                <section class="mt-4 rounded-lg border border-line overflow-hidden" data-addons aria-labelledby="addons-heading">
+                    <div class="px-4 pt-2.5 pb-1 flex items-baseline justify-between gap-3">
+                        <h2 id="addons-heading" class="text-sm font-medium">Complete your swing <span class="font-normal text-xs text-muted">· optional, added with the swing</span></h2>
+                        <p class="text-xs text-muted whitespace-nowrap" data-addon-summary><span data-addon-summary-label>Swing only</span> <span class="text-sm font-medium text-ink tabular-nums" data-addon-total></span></p>
                     </div>
                     <ul class="divide-y divide-line">
                         <?php foreach ($addons as $a):
@@ -161,24 +164,24 @@ $accordions = array_filter([
                                 if ($av['id'] === $a['variant_id']) { $defValues = $av['values']; break; }
                             }
                         ?>
-                            <li class="p-4 transition-colors has-[[data-addon-check]:checked]:bg-sand/40" data-addon
+                            <li class="px-4 py-3 transition-colors has-[[data-addon-check]:checked]:bg-sand/40" data-addon
                                 data-product-id="<?= $aid ?>" data-variant-id="<?= (int) $a['variant_id'] ?>" data-price="<?= esc((string) $a['price'], 'attr') ?>">
                                 <div class="flex gap-3 items-start">
-                                    <input type="checkbox" id="addon-<?= $aid ?>" class="mt-4 w-5 h-5 shrink-0 rounded border-line text-wood focus:ring-wood/30 cursor-pointer"
+                                    <input type="checkbox" id="addon-<?= $aid ?>" class="mt-2.5 w-5 h-5 shrink-0 rounded border-line text-wood focus:ring-wood/30 cursor-pointer"
                                            data-addon-check <?= $a['is_preselected'] ? 'checked' : '' ?>>
                                     <label for="addon-<?= $aid ?>" class="shrink-0 cursor-pointer">
-                                        <img src="<?= esc($a['image'], 'attr') ?>" alt="" width="56" height="56" loading="lazy" class="w-14 h-14 rounded-md object-cover bg-sand" data-addon-image>
+                                        <img src="<?= esc($a['image'], 'attr') ?>" alt="" width="48" height="48" loading="lazy" class="w-12 h-12 rounded-md object-cover bg-sand" data-addon-image>
                                     </label>
                                     <div class="flex-1 min-w-0">
                                         <div class="flex items-start justify-between gap-3">
-                                            <label for="addon-<?= $aid ?>" class="text-sm font-medium leading-snug cursor-pointer"><?= esc($a['name']) ?></label>
+                                            <span class="text-sm leading-snug"><label for="addon-<?= $aid ?>" class="font-medium cursor-pointer"><?= esc($a['name']) ?></label>
+                                                <a href="<?= esc($a['url'], 'attr') ?>" target="_blank" rel="noopener" class="ml-1.5 text-xs text-muted hover:text-wood hover:underline underline-offset-2 whitespace-nowrap">View details</a></span>
                                             <span class="text-sm tabular-nums whitespace-nowrap" data-addon-price>+<?= price($a['price']) ?></span>
                                         </div>
-                                        <a href="<?= esc($a['url'], 'attr') ?>" target="_blank" rel="noopener" class="text-xs text-muted hover:text-wood hover:underline underline-offset-2">View details</a>
 
                                         <?php foreach ($a['groups'] as $g): ?>
-                                            <div class="mt-2.5" data-addon-group data-attribute="<?= esc($g['slug'], 'attr') ?>">
-                                                <p class="text-xs text-muted mb-1.5"><?= esc($g['name']) ?>: <span class="text-ink" data-addon-selected></span></p>
+                                            <div class="mt-1.5" data-addon-group data-attribute="<?= esc($g['slug'], 'attr') ?>">
+                                                <p class="text-xs text-muted mb-1"><?= esc($g['name']) ?>: <span class="text-ink" data-addon-selected></span></p>
                                                 <div class="flex flex-wrap gap-1.5">
                                                     <?php foreach ($g['values'] as $gv): $sel = in_array($gv['id'], $defValues, true); ?>
                                                         <button type="button"
@@ -200,15 +203,11 @@ $accordions = array_filter([
                             </li>
                         <?php endforeach ?>
                     </ul>
-                    <div class="px-4 py-3 border-t border-line bg-sand/30 flex items-center justify-between gap-3 text-sm" data-addon-summary>
-                        <span class="text-muted" data-addon-summary-label>Swing only</span>
-                        <span class="font-medium tabular-nums" data-addon-total></span>
-                    </div>
                 </section>
             <?php endif ?>
 
             <!-- Quantity + CTAs -->
-            <div class="mt-7 flex items-stretch gap-3">
+            <div class="mt-4 flex items-stretch gap-3">
                 <div class="inline-flex items-center border border-line rounded-md" data-qty-selector>
                     <button type="button" class="w-11 h-12 flex items-center justify-center text-muted hover:text-ink text-lg" data-qty-dec aria-label="Decrease quantity">–</button>
                     <input type="text" inputmode="numeric" value="1" class="w-10 text-center bg-transparent font-medium tabular-nums focus:outline-none" data-qty-input aria-label="Quantity" readonly>
@@ -222,10 +221,10 @@ $accordions = array_filter([
                     <svg class="w-5 h-5" viewBox="0 0 24 24" fill="<?= $inWish ? 'currentColor' : 'none' ?>" stroke="currentColor" stroke-width="1.6" data-heart><path stroke-linecap="round" stroke-linejoin="round" d="M12 20s-7-4.4-7-9.3C5 7.9 7 6 9.3 6c1.4 0 2.7.7 3.4 1.9C13.4 6.7 14.7 6 16.1 6 18.4 6 20 7.9 20 10.7 20 15.6 12 20 12 20Z"/></svg>
                 </button>
             </div>
-            <button type="button" class="btn-wood btn-block mt-3" data-pdp-buy <?= $inStock ? '' : 'disabled' ?>>Buy Now</button>
+            <button type="button" class="btn-wood btn-block mt-2.5" data-pdp-buy <?= $inStock ? '' : 'disabled' ?>>Buy Now</button>
 
             <!-- Assurance strip -->
-            <ul class="mt-7 grid grid-cols-2 gap-y-3 gap-x-4 text-sm border-t border-line pt-6">
+            <ul class="mt-5 grid grid-cols-2 gap-y-3 gap-x-4 text-sm border-t border-line pt-6">
                 <?php
                 $assur = [
                     [
@@ -256,7 +255,7 @@ $accordions = array_filter([
             </ul>
 
             <!-- Accordions (§25) -->
-            <div class="mt-8 divide-y divide-line border-t border-line" data-accordions>
+            <div class="mt-6 divide-y divide-line border-t border-line" data-accordions>
                 <?php foreach ($accordions as $heading => $body):
                     if (empty(trim(strip_tags((string) $body)))) continue;
                     $id = url_title($heading, '-', true); ?>
@@ -343,14 +342,25 @@ $accordions = array_filter([
     <?php endif ?>
 </div>
 
-<!-- ===================== MOBILE STICKY BAR (§26) ===================== -->
-<div class="lg:hidden fixed inset-x-0 bottom-0 z-30 bg-surface/95 backdrop-blur border-t border-line px-4 py-3 pb-safe translate-y-full transition-transform duration-300 ease-out-soft" data-sticky-bar>
-    <div class="flex items-center gap-3">
-        <div class="shrink-0">
-            <p class="font-display text-lg tabular-nums leading-none" data-sticky-price><?= price($p['price']) ?></p>
+<!-- ===================== STICKY BUY BAR (§26) =====================
+     Appears whenever the main Add to Cart button is scrolled out of view, on every
+     screen size, so the purchase action is never more than a glance away. It shows
+     the live total (incl. ticked add-ons) and the currently selected options. -->
+<div class="fixed inset-x-0 bottom-0 z-30 bg-surface/95 backdrop-blur border-t border-line shadow-[0_-6px_20px_rgb(0_0_0/0.06)] translate-y-full transition-transform duration-300 ease-out-soft" data-sticky-bar inert>
+    <div class="container-page flex items-center gap-3 py-2.5 pb-safe">
+        <div class="hidden md:flex items-center gap-3 min-w-0 flex-1">
+            <img src="<?= esc(product_image($images[0]['image'] ?? null), 'attr') ?>" alt="" width="44" height="44" class="w-11 h-11 rounded-md object-cover bg-sand shrink-0" data-sticky-thumb>
+            <div class="min-w-0">
+                <p class="text-sm font-medium truncate"><?= esc($p['name']) ?></p>
+                <p class="text-xs text-muted truncate" data-sticky-variant></p>
+            </div>
         </div>
-        <button type="button" class="btn-primary flex-1 btn-sm" data-pdp-add <?= $inStock ? '' : 'disabled' ?>>Add to Cart</button>
-        <button type="button" class="btn-wood flex-1 btn-sm" data-pdp-buy <?= $inStock ? '' : 'disabled' ?>>Buy Now</button>
+        <div class="shrink-0">
+            <p class="font-display text-lg tabular-nums leading-none" data-sticky-price><?= price($defaultVariant['price'] ?? $p['price']) ?></p>
+            <p class="hidden md:block text-[11px] text-muted mt-0.5" data-sticky-addon-note></p>
+        </div>
+        <button type="button" class="btn-primary flex-1 md:flex-none md:w-44 btn-sm" data-pdp-add <?= $inStock ? '' : 'disabled' ?>>Add to Cart</button>
+        <button type="button" class="btn-wood flex-1 md:flex-none md:w-36 btn-sm" data-pdp-buy <?= $inStock ? '' : 'disabled' ?>>Buy Now</button>
     </div>
 </div>
 

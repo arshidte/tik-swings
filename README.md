@@ -49,12 +49,18 @@ php spark serve
 
 Visit `http://localhost:8080`.
 
-### Demo accounts
+### Administrator creation
 
-| Role | Email | Password |
-|------|-------|----------|
-| Admin | `admin@swingandgrain.in` | `admin1234` |
-| Customer | `customer@example.com` | `password` |
+For secure setup (and in production), create an administrator using the CLI command:
+```bash
+php spark admin:create [email] [password]
+```
+
+### Local development fixtures
+
+When running in local `development` mode (`CI_ENVIRONMENT = development`), sample seed data includes:
+- Demo Admin: `admin@swingandgrain.in` (local dev only)
+- Demo Customer: `customer@example.com` (local dev only)
 
 Admin panel: `/admin`
 

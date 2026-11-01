@@ -11,9 +11,9 @@ class OrderModel extends Model
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
     protected $allowedFields    = [
-        'order_number', 'user_id', 'email', 'phone', 'billing_address', 'shipping_address',
+        'order_number', 'idempotency_key', 'user_id', 'email', 'phone', 'billing_address', 'shipping_address',
         'subtotal', 'discount', 'shipping', 'tax', 'total', 'coupon_code', 'currency',
-        'payment_method', 'payment_status', 'status', 'notes',
+        'payment_method', 'payment_status', 'status', 'stock_restored', 'notes',
     ];
     protected $useTimestamps = true;
 
@@ -37,6 +37,15 @@ class OrderModel extends Model
     public function findByNumber(string $number): ?array
     {
         return $this->where('order_number', $number)->first();
+    }
+
+    public function findByIdempotencyKey(?string $key): ?array
+    {
+        if (! $key) {
+            return null;
+        }
+
+        return $this->where('idempotency_key', $key)->first();
     }
 
     public function generateOrderNumber(): string

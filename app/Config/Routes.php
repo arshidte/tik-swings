@@ -70,6 +70,8 @@ $routes->get('register', 'Auth\Auth::register');
 $routes->post('register', 'Auth\Auth::attemptRegister');
 $routes->get('forgot-password', 'Auth\Auth::forgot');
 $routes->post('forgot-password', 'Auth\Auth::sendReset');
+$routes->get('reset-password/(:segment)', 'Auth\Auth::reset/$1');
+$routes->post('reset-password/(:segment)', 'Auth\Auth::attemptReset/$1');
 $routes->get('logout', 'Auth\Auth::logout');
 
 // ---------------------------------------------------------------------------
@@ -79,6 +81,7 @@ $routes->group('account', ['filter' => 'auth'], static function ($routes) {
     $routes->get('/', 'Account\Account::index');
     $routes->get('orders', 'Account\Account::orders');
     $routes->get('orders/(:segment)', 'Account\Account::orderDetail/$1');
+    $routes->post('orders/(:segment)/cancel', 'Account\Account::cancelOrder/$1');
     $routes->get('addresses', 'Account\Account::addresses');
     $routes->post('addresses/save', 'Account\Account::saveAddress');
     $routes->post('addresses/delete', 'Account\Account::deleteAddress');

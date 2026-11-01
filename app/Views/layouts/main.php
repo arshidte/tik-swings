@@ -36,7 +36,9 @@ $schema     = $schema ?? null; // JSON-LD array or string
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="icon" href="<?= base_url('assets/images/placeholder-product.svg') ?>" type="image/svg+xml">
+    <link rel="icon" href="<?= base_url('favicon.ico') ?>" sizes="32x32">
+    <link rel="icon" href="<?= base_url('favicon-128.png') ?>" type="image/png" sizes="128x128">
+    <link rel="apple-touch-icon" href="<?= base_url('favicon-128.png') ?>">
     <link rel="stylesheet" href="<?= base_url('assets/css/app.css') ?>">
 
     <?php if ($schema): ?>

@@ -77,13 +77,14 @@ class Orders extends BaseController
 
     public function updateStatus(int $id)
     {
-        $status = $this->request->getPost('status');
-        $note   = $this->request->getPost('note');
-        $valid  = ['pending', 'confirmed', 'processing', 'shipped', 'out_for_delivery', 'delivered', 'cancelled', 'refunded'];
-        if (! in_array($status, $valid, true)) {
-            return redirect()->back()->with('error', 'Invalid status.');
+        $status = (string) $this->request->getPost('status');
+        $note   = (string) $this->request->getPost('note');
+
+        try {
+            (new OrderService())->updateStatus($id, $status, $note ?: null, (int) session()->get('user_id'));
+        } catch (\DomainException|\RuntimeException $e) {
+            return redirect()->back()->with('error', $e->getMessage());
         }
-        (new OrderService())->updateStatus($id, $status, $note ?: null, (int) session()->get('user_id'));
 
         return redirect()->to(site_url('admin/orders/' . $id))->with('success', 'Order status updated.');
     }

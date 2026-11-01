@@ -33,13 +33,16 @@ class Checkout extends BaseController
             return redirect()->to(site_url('cart'))->with('info', 'Your cart is empty.');
         }
 
+        $idempotencyKey = bin2hex(random_bytes(16));
+
         return view('checkout/index', [
-            'meta'      => ['title' => 'Checkout — ' . store_name()],
-            'snapshot'  => $snapshot,
-            'addresses' => (new AddressModel())->forUser($this->uid()),
-            'user'      => (new UserModel())->find($this->uid()) ?: [],
-            'methods'   => (new PaymentManager())->available(),
-            'bodyClass' => 'bg-sand/30',
+            'meta'           => ['title' => 'Checkout — ' . store_name()],
+            'snapshot'       => $snapshot,
+            'addresses'      => (new AddressModel())->forUser($this->uid()),
+            'user'           => (new UserModel())->find($this->uid()) ?: [],
+            'methods'        => (new PaymentManager())->available(),
+            'idempotencyKey' => $idempotencyKey,
+            'bodyClass'      => 'bg-sand/30',
         ]);
     }
 
@@ -81,9 +84,16 @@ class Checkout extends BaseController
             (new AddressModel())->insert(['user_id' => $this->uid()] + $shipping);
         }
 
+        $idempotencyKey = (string) $this->request->getPost('idempotency_key');
+
         try {
             $order = (new OrderService())->createFromCart(
-                $this->uidOrNull(), $customer, $shipping, $method->key(), $this->request->getPost('notes')
+                $this->uidOrNull(),
+                $customer,
+                $shipping,
+                $method->key(),
+                $this->request->getPost('notes'),
+                $idempotencyKey ?: null
             );
         } catch (\RuntimeException $e) {
             return redirect()->back()->withInput()->with('error', $e->getMessage());
@@ -98,6 +108,11 @@ class Checkout extends BaseController
             session()->set('pending_order', $order['order_number']);
             try {
                 $intent = $method->createIntent($order);
+                // F-002: Persist gateway order ID with payment record immediately
+                if (! empty($intent['gateway_order_id'])) {
+                    (new \App\Models\PaymentModel())->where('order_id', $order['id'])
+                        ->set(['provider_order' => $intent['gateway_order_id']])->update();
+                }
             } catch (\RuntimeException $e) {
                 session()->remove('pending_order');
 
@@ -119,7 +134,7 @@ class Checkout extends BaseController
     }
 
     /**
-     * Gateway callback verification (CSRF-exempt; verified by signature §31).
+     * Gateway callback verification (CSRF-exempt; verified by signature §31, F-002).
      */
     public function verifyPayment()
     {
@@ -130,12 +145,60 @@ class Checkout extends BaseController
             return $this->jsonError('Order not found.', 404);
         }
 
+        // Replay protection: if already paid, return success redirect without re-processing
+        if ($order['payment_status'] === 'paid') {
+            return $this->jsonSuccess('Payment already confirmed.', ['redirect' => site_url('checkout/confirmation/' . $order['order_number'])]);
+        }
+
+        $paymentModel = new \App\Models\PaymentModel();
+        $payment      = $paymentModel->where('order_id', $order['id'])->first();
+        if (! $payment) {
+            return $this->jsonError('Payment record not found.', 404);
+        }
+
+        // F-002: Validate submitted gateway order ID matches persisted provider_order
+        $submittedOrderId = (string) ($payload['razorpay_order_id'] ?? '');
+        if ($payment['provider_order'] && $payment['provider_order'] !== $submittedOrderId) {
+            log_message('critical', "Razorpay order ID mismatch on order {$order['order_number']}: expected {$payment['provider_order']}, got {$submittedOrderId}");
+            return $this->jsonError('Payment verification failed: order mismatch.', 400);
+        }
+
+        // Verify cryptographic HMAC signature
         $method = (new PaymentManager())->get($order['payment_method']);
         if (! $method || ! $method->verify($payload)) {
             return $this->jsonError('Payment verification failed.', 400);
         }
 
-        (new OrderService())->markPaid((int) $order['id'], $payload['razorpay_payment_id'] ?? '', $payload);
+        $paymentId = (string) ($payload['razorpay_payment_id'] ?? '');
+
+        // F-002: Ensure payment ID has not been used on any other completed order
+        if ($paymentId !== '') {
+            $duplicate = $paymentModel->where('provider_ref', $paymentId)->where('status', 'captured')->first();
+            if ($duplicate && (int) $duplicate['order_id'] !== (int) $order['id']) {
+                log_message('critical', "Duplicate payment ID {$paymentId} attempted for order {$order['order_number']}");
+                return $this->jsonError('This payment transaction has already been applied.', 400);
+            }
+        }
+
+        // F-002: Server-to-server reconciliation with Razorpay API (amount, currency, captured/authorized status)
+        if ($method instanceof \App\Libraries\Payment\RazorpayPaymentService && $paymentId !== '') {
+            $remote = $method->fetchPayment($paymentId);
+            if ($remote) {
+                $expectedPaise = (int) round($order['total'] * 100);
+                if ((int) ($remote['amount'] ?? 0) !== $expectedPaise) {
+                    log_message('critical', "Razorpay amount mismatch for order {$order['order_number']}: expected {$expectedPaise}, got {$remote['amount']}");
+                    return $this->jsonError('Payment verification failed: amount mismatch.', 400);
+                }
+                if (($remote['currency'] ?? '') !== ($order['currency'] ?? 'INR')) {
+                    return $this->jsonError('Payment verification failed: currency mismatch.', 400);
+                }
+                if (! in_array($remote['status'] ?? '', ['captured', 'authorized'], true)) {
+                    return $this->jsonError('Payment is not captured or authorized.', 400);
+                }
+            }
+        }
+
+        (new OrderService())->markPaid((int) $order['id'], $paymentId, $payload);
         (new CartService())->clear();
         session()->remove('pending_order');
 

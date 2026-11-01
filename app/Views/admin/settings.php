@@ -27,6 +27,10 @@ $help = [];
                         <label class="field-label" for="<?= $key ?>"><?= esc($label) ?></label>
                         <?php if (in_array($key, $multiline, true)): ?>
                             <textarea id="<?= $key ?>" name="<?= $key ?>" rows="<?= $key === 'instagram_reels' ? 5 : 2 ?>" class="field-input"><?= esc(setting($key)) ?></textarea>
+                        <?php elseif ($key === 'razorpay_key_secret'): ?>
+                            <?php $isConfigured = setting('razorpay_key_secret') || env('RAZORPAY_KEY_SECRET') || getenv('RAZORPAY_KEY_SECRET'); ?>
+                            <input id="<?= $key ?>" name="<?= $key ?>" type="password" class="field-input" value="" placeholder="<?= $isConfigured ? '•••••••••••• (leave blank to keep current secret)' : 'Enter key secret (or set in .env)' ?>">
+                            <p class="field-help text-xs text-muted mt-1">Recommended: define <code>RAZORPAY_KEY_SECRET</code> in your server <code>.env</code> file.</p>
                         <?php else: ?>
                             <input id="<?= $key ?>" name="<?= $key ?>" type="<?= $type ?>" class="field-input" value="<?= esc(setting($key)) ?>">
                         <?php endif ?>

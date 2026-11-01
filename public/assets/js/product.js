@@ -163,6 +163,8 @@ if (root) {
       ? `Swing + ${picked.length} add-on${picked.length > 1 ? 's' : ''}${qty > 1 ? ` × ${qty}` : ''}`
       : `Swing only${qty > 1 ? ` × ${qty}` : ''}`;
     $$('[data-sticky-price]').forEach((e) => (e.textContent = money(total)));
+    const note = $('[data-sticky-addon-note]');
+    if (note) note.textContent = picked.length ? `incl. ${picked.length} add-on${picked.length > 1 ? 's' : ''}` : '';
     refreshCta();
   }
 
@@ -236,7 +238,16 @@ if (root) {
 
   // ---------- Variant selection ----------
   const selected = {}; // attributeSlug -> valueId
+
+  // Sticky bar subtitle: the options currently chosen, e.g. "Light Teak · Standard".
+  function updateStickySummary() {
+    const labels = $$('[data-option-group] [data-option-value][data-selected="true"]').map((b) => b.dataset.valueLabel);
+    const el = $('[data-sticky-variant]');
+    if (el) el.textContent = labels.join(' · ');
+  }
+
   function updateVariant() {
+    updateStickySummary();
     const values = Object.values(selected).filter(Boolean);
     if (!values.length) return;
     postJSON('product/variant', { product_id: productId, values }).then((res) => {
@@ -311,15 +322,36 @@ if (root) {
     });
   });
 
-  // ---------- Mobile sticky bar (§26) ----------
+  // ---------- Sticky buy bar (§26) ----------
+  // Shown whenever the main Add to Cart button is not fully on screen, so the
+  // purchase action is always reachable without scrolling back up.
   const stickyBar = $('[data-sticky-bar]');
-  const primaryAdd = $('[data-pdp-add]');
-  if (stickyBar && primaryAdd && 'IntersectionObserver' in window) {
-    const io = new IntersectionObserver((entries) => {
-      entries.forEach((e) => {
-        stickyBar.classList.toggle('translate-y-full', e.isIntersecting);
-      });
-    }, { rootMargin: '0px 0px -80% 0px' });
-    io.observe(primaryAdd);
+  const primaryAdd = $('[data-pdp-add]');   // first in the DOM = the main button
+  const fab = $('[data-whatsapp-fab]');
+  let ctaOffscreen = false, footerInView = false;
+  function renderSticky() {
+    const show = ctaOffscreen && !footerInView;   // never cover the footer
+    stickyBar.classList.toggle('translate-y-full', !show);
+    stickyBar.toggleAttribute('inert', !show);   // off-screen controls must not be tabbable
+    if (fab) fab.classList.toggle('!bottom-20', show);   // keep the chat bubble clear of the bar
   }
+  if (stickyBar && primaryAdd) {
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver((entries) => {
+        entries.forEach((e) => { ctaOffscreen = !e.isIntersecting || e.intersectionRatio < 1; });
+        renderSticky();
+      }, { threshold: [0, 1] }).observe(primaryAdd);
+      const footer = $('footer');
+      if (footer) {
+        new IntersectionObserver((entries) => {
+          entries.forEach((e) => { footerInView = e.isIntersecting; });
+          renderSticky();
+        }).observe(footer);
+      }
+    } else {
+      ctaOffscreen = true;
+      renderSticky();
+    }
+  }
+  updateStickySummary();
 }

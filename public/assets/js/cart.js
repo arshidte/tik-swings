@@ -3,20 +3,31 @@
 import { $, $$, postJSON, getJSON, toast, money, setCartCount } from './util.js';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const safeUrl = (u) => {
+  const s = String(u ?? '').trim();
+  return /^(https?:\/\/|\/|#)/i.test(s) ? esc(s) : '#';
+};
 
 function itemRow(it) {
   const isAddon = !!it.addon_of;
+  const url = safeUrl(it.url);
+  const img = safeUrl(it.image);
+  const name = esc(it.name);
+  const variant = it.variant ? esc(it.variant) : '';
+  const itemId = esc(it.id);
+  const qty = parseInt(it.quantity, 10) || 1;
+
   return `
-  <div class="flex gap-3 ${isAddon ? 'ml-6 -mt-1 pl-3 border-l-2 border-line' : ''}" data-cart-row data-item-id="${it.id}">
-    <a href="${it.url}" class="shrink-0"><img src="${it.image}" alt="" width="80" height="80" class="${isAddon ? 'w-14 h-14' : 'w-20 h-20'} rounded-md object-cover bg-sand"></a>
+  <div class="flex gap-3 ${isAddon ? 'ml-6 -mt-1 pl-3 border-l-2 border-line' : ''}" data-cart-row data-item-id="${itemId}">
+    <a href="${url}" class="shrink-0"><img src="${img}" alt="${name}" width="80" height="80" class="${isAddon ? 'w-14 h-14' : 'w-20 h-20'} rounded-md object-cover bg-sand"></a>
     <div class="flex-1 min-w-0">
       ${isAddon ? '<p class="text-[11px] uppercase tracking-wide text-subtle leading-none mb-1">Add-on</p>' : ''}
-      <a href="${it.url}" class="font-display text-[15px] leading-snug line-clamp-2 hover:text-wood">${it.name}</a>
-      ${it.variant ? `<p class="text-xs text-subtle mt-0.5">${it.variant}</p>` : ''}
+      <a href="${url}" class="font-display text-[15px] leading-snug line-clamp-2 hover:text-wood">${name}</a>
+      ${variant ? `<p class="text-xs text-subtle mt-0.5">${variant}</p>` : ''}
       <div class="flex items-center justify-between mt-2">
         <div class="inline-flex items-center border border-line rounded-md" data-qty>
           <button type="button" class="w-8 h-8 flex items-center justify-center text-muted hover:text-ink" data-qty-dec aria-label="Decrease quantity">–</button>
-          <span class="w-8 text-center text-sm tabular-nums" data-qty-val>${it.quantity}</span>
+          <span class="w-8 text-center text-sm tabular-nums" data-qty-val="${qty}</span>
           <button type="button" class="w-8 h-8 flex items-center justify-center text-muted hover:text-ink" data-qty-inc aria-label="Increase quantity">+</button>
         </div>
         <span class="font-medium tabular-nums text-sm">${money(it.line_total)}</span>
@@ -33,17 +44,20 @@ function itemRow(it) {
  * Add-ons with variants get a compact <select>; sold-out variants are disabled.
  */
 export function suggestionRow(s) {
+  const url = safeUrl(s.url);
+  const img = safeUrl(s.image);
+  const name = esc(s.name);
   const variantPicker = s.variants && s.variants.length > 1
-    ? `<select class="mt-1.5 w-full rounded-md border border-line bg-bg px-2 py-1.5 text-xs focus:border-ink focus:outline-none" data-suggestion-variant aria-label="Choose an option for ${esc(s.name)}">
-        ${s.variants.map((v) => `<option value="${v.id}" data-price="${v.price}" ${v.id === s.variant_id ? 'selected' : ''} ${v.in_stock ? '' : 'disabled'}>${esc(v.label)} — ${money(v.price)}${v.in_stock ? '' : ' (sold out)'}</option>`).join('')}
+    ? `<select class="mt-1.5 w-full rounded-md border border-line bg-bg px-2 py-1.5 text-xs focus:border-ink focus:outline-none" data-suggestion-variant aria-label="Choose an option for ${name}">
+        ${s.variants.map((v) => `<option value="${esc(v.id)}" data-price="${parseFloat(v.price) || 0}" ${v.id === s.variant_id ? 'selected' : ''} ${v.in_stock ? '' : 'disabled'}>${esc(v.label)} — ${money(v.price)}${v.in_stock ? '' : ' (sold out)'}</option>`).join('')}
       </select>`
     : '';
   return `
-  <div class="flex gap-3 items-start" data-suggestion data-product-id="${s.product_id}" data-parent-id="${s.parent_id}" data-parent-qty="${s.parent_qty || 1}" data-variant-id="${s.variant_id || ''}">
-    <a href="${esc(s.url)}" class="shrink-0"><img src="${esc(s.image)}" alt="" width="56" height="56" loading="lazy" class="w-14 h-14 rounded-md object-cover bg-sand"></a>
+  <div class="flex gap-3 items-start" data-suggestion data-product-id="${esc(s.product_id)}" data-parent-id="${esc(s.parent_id)}" data-parent-qty="${parseInt(s.parent_qty, 10) || 1}" data-variant-id="${esc(s.variant_id || '')}">
+    <a href="${url}" class="shrink-0"><img src="${img}" alt="${name}" width="56" height="56" loading="lazy" class="w-14 h-14 rounded-md object-cover bg-sand"></a>
     <div class="flex-1 min-w-0">
       <div class="flex items-start justify-between gap-2">
-        <a href="${esc(s.url)}" class="text-sm font-medium leading-snug line-clamp-2 hover:text-wood">${esc(s.name)}</a>
+        <a href="${url}" class="text-sm font-medium leading-snug line-clamp-2 hover:text-wood">${name}</a>
         <span class="text-sm tabular-nums whitespace-nowrap" data-suggestion-price>${money(s.price)}</span>
       </div>
       ${variantPicker}

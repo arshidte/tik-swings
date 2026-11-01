@@ -12,7 +12,7 @@ class ProductImageModel extends Model
     protected $returnType       = 'array';
     protected $allowedFields    = [
         'product_id', 'variant_id', 'image', 'image_type',
-        'alt_text', 'sort_order', 'is_primary',
+        'alt_text', 'sort_order', 'is_primary', 'is_hover',
     ];
     protected $useTimestamps = false;
 

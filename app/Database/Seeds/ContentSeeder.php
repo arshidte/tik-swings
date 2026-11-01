@@ -12,23 +12,54 @@ class ContentSeeder extends Seeder
         $now = date('Y-m-d H:i:s');
         $db  = $this->db;
 
-        // --- Admin + demo customer --------------------------------------------
-        $db->table('users')->insertBatch([
-            [
-                'first_name' => 'Store', 'last_name' => 'Admin',
-                'email' => 'admin@swingandgrain.in', 'phone' => '9000000001',
-                'password_hash' => password_hash('admin1234', PASSWORD_DEFAULT),
-                'role' => 'admin', 'status' => 'active', 'email_verified_at' => $now,
-                'created_at' => $now, 'updated_at' => $now,
-            ],
-            [
-                'first_name' => 'Ananya', 'last_name' => 'Rao',
-                'email' => 'customer@example.com', 'phone' => '9000000002',
-                'password_hash' => password_hash('password', PASSWORD_DEFAULT),
-                'role' => 'customer', 'status' => 'active', 'email_verified_at' => $now,
-                'created_at' => $now, 'updated_at' => $now,
-            ],
-        ]);
+        // --- Admin + demo customer (F-001 production hardening) ---------------
+        $env = defined('ENVIRONMENT') ? ENVIRONMENT : 'development';
+        $adminEmail = env('ADMIN_EMAIL') ?: getenv('ADMIN_EMAIL');
+        $adminPass  = env('ADMIN_PASSWORD') ?: getenv('ADMIN_PASSWORD');
+
+        if ($env === 'production') {
+            // In production, only seed an administrator if explicitly configured via environment secrets
+            if ($adminEmail && $adminPass) {
+                if ($db->table('users')->where('email', $adminEmail)->countAllResults() === 0) {
+                    $db->table('users')->insert([
+                        'first_name'        => 'Store',
+                        'last_name'         => 'Admin',
+                        'email'             => strtolower(trim($adminEmail)),
+                        'phone'             => '9000000001',
+                        'password_hash'     => password_hash($adminPass, PASSWORD_DEFAULT),
+                        'role'              => 'admin',
+                        'status'            => 'active',
+                        'email_verified_at' => $now,
+                        'created_at'        => $now,
+                        'updated_at'        => $now,
+                    ]);
+                }
+            }
+        } else {
+            // Development fixtures — check if user already exists before inserting
+            $demoUsers = [
+                [
+                    'first_name' => 'Store', 'last_name' => 'Admin',
+                    'email' => $adminEmail ?: 'admin@swingandgrain.in', 'phone' => '9000000001',
+                    'password_hash' => password_hash($adminPass ?: 'admin1234', PASSWORD_DEFAULT),
+                    'role' => 'admin', 'status' => 'active', 'email_verified_at' => $now,
+                    'created_at' => $now, 'updated_at' => $now,
+                ],
+                [
+                    'first_name' => 'Ananya', 'last_name' => 'Rao',
+                    'email' => 'customer@example.com', 'phone' => '9000000002',
+                    'password_hash' => password_hash('password', PASSWORD_DEFAULT),
+                    'role' => 'customer', 'status' => 'active', 'email_verified_at' => $now,
+                    'created_at' => $now, 'updated_at' => $now,
+                ],
+            ];
+
+            foreach ($demoUsers as $u) {
+                if ($db->table('users')->where('email', $u['email'])->countAllResults() === 0) {
+                    $db->table('users')->insert($u);
+                }
+            }
+        }
 
         // --- Reviews (across a range of products) ------------------------------
         $products = $db->table('products')->select('id, slug')->get()->getResultArray();

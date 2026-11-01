@@ -143,7 +143,8 @@ class Products extends BaseController
             $id = $this->products->insert($data, true);
         }
 
-        // Handle any uploaded images on save.
+        // Apply card/hover/remove choices for existing photos, then add new uploads.
+        $this->saveImageChoices($id);
         $this->handleUploads($id);
 
         // Persist attributes / values / variants from the editor.
@@ -408,7 +409,9 @@ class Products extends BaseController
         }
         $uploader = new ImageUploadService();
         $imgModel = new ProductImageModel();
+        $hadImages = $imgModel->where('product_id', $productId)->countAllResults();
         $hasPrimary = $imgModel->where('product_id', $productId)->where('is_primary', 1)->countAllResults() > 0;
+        $hasHover   = $imgModel->where('product_id', $productId)->where('is_hover', 1)->countAllResults() > 0;
         $order = (int) $imgModel->where('product_id', $productId)->selectMax('sort_order')->get()->getRow('sort_order');
 
         foreach ($files['images'] as $file) {
@@ -417,14 +420,104 @@ class Products extends BaseController
             }
             try {
                 $path = $uploader->storeProductImage($file);
+                // First photo of a product is its card photo. If the admin hasn't
+                // had a real choice yet (<= 1 photo before this upload), the next
+                // new photo becomes the hover photo — they can change it afterwards.
+                $makeHover = $hasPrimary && ! $hasHover && $hadImages <= 1;
                 $imgModel->insert([
                     'product_id' => $productId, 'image' => $path, 'image_type' => 'product',
-                    'alt_text' => null, 'sort_order' => ++$order, 'is_primary' => $hasPrimary ? 0 : 1,
+                    'alt_text' => null, 'sort_order' => ++$order,
+                    'is_primary' => $hasPrimary ? 0 : 1, 'is_hover' => $makeHover ? 1 : 0,
                 ]);
                 $hasPrimary = true;
+                $hasHover   = $hasHover || $makeHover;
             } catch (\RuntimeException $e) {
                 session()->setFlashdata('error', $e->getMessage());
             }
+        }
+    }
+
+    /**
+     * Apply the photo manager's choices: which photo is the card's default
+     * (is_primary), which one it swaps to on hover (is_hover, optional), and
+     * which photos to remove. No-op unless the form rendered the manager.
+     */
+    private function saveImageChoices(int $productId): void
+    {
+        if (! $this->request->getPost('images_present')) {
+            return;
+        }
+
+        $model = new ProductImageModel();
+        $rows  = $model->where('product_id', $productId)->orderBy('is_primary', 'DESC')->orderBy('sort_order', 'ASC')->orderBy('id', 'ASC')->findAll();
+        if ($rows === []) {
+            return;
+        }
+
+        // 1. Removals (only this product's photos).
+        $delete = array_map('intval', (array) $this->request->getPost('delete_images'));
+        $keep   = [];
+        foreach ($rows as $r) {
+            if (in_array((int) $r['id'], $delete, true)) {
+                $model->delete((int) $r['id']);
+                $this->deleteImageFiles((string) $r['image'], (int) $r['id']);
+            } else {
+                $keep[(int) $r['id']] = $r;
+            }
+        }
+        if ($keep === []) {
+            return;
+        }
+
+        // 2. Card photo: posted choice if valid, else the current one, else the first.
+        $cardId = (int) $this->request->getPost('card_image');
+        if (! isset($keep[$cardId])) {
+            $cardId = 0;
+            foreach ($keep as $id => $r) {
+                if (! empty($r['is_primary'])) { $cardId = $id; break; }
+            }
+            $cardId = $cardId ?: (int) array_key_first($keep);
+        }
+
+        // 3. Hover photo: optional, must differ from the card photo.
+        $hoverId = (int) $this->request->getPost('hover_image');
+        if ($hoverId === $cardId || ! isset($keep[$hoverId])) {
+            $hoverId = 0;
+        }
+
+        $model->where('product_id', $productId)->set(['is_primary' => 0, 'is_hover' => 0])->update();
+        $model->update($cardId, ['is_primary' => 1]);
+        if ($hoverId) {
+            $model->update($hoverId, ['is_hover' => 1]);
+        }
+    }
+
+    /**
+     * Remove an uploaded photo's files (large/medium/thumbnail) unless another
+     * row still uses the same file. Seeded/static assets are never touched.
+     */
+    private function deleteImageFiles(string $path, int $ignoreRowId): void
+    {
+        if (! str_starts_with($path, 'uploads/products/')) {
+            return;
+        }
+        $stillUsed = (new ProductImageModel())->where('image', $path)->where('id !=', $ignoreRowId)->countAllResults() > 0
+            || db_connect()->table('product_user_media')->where('media', $path)->countAllResults() > 0;
+        if ($stillUsed) {
+            return;
+        }
+        $base = preg_replace('/-(large|medium|thumbnail)\.(webp|jpg)$/', '', $path);
+        foreach (['large', 'medium', 'thumbnail'] as $size) {
+            foreach (['webp', 'jpg'] as $ext) {
+                $file = FCPATH . $base . '-' . $size . '.' . $ext;
+                if (is_file($file)) {
+                    @unlink($file);
+                }
+            }
+        }
+        $own = FCPATH . $path;
+        if (is_file($own)) {
+            @unlink($own);
         }
     }
 

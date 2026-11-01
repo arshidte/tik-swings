@@ -48,22 +48,69 @@ $action = $p ? base_url('admin/products/update/' . $p['id']) : base_url('admin/p
             <div><label class="field-label" for="seo_keywords">SEO keywords</label><input id="seo_keywords" name="seo_keywords" class="field-input" value="<?= $val('seo_keywords') ?>"></div>
         </div>
 
-        <!-- Images (§36/§37) -->
-        <div class="bg-surface rounded-lg border border-line p-5">
-            <h2 class="font-medium mb-4">Images</h2>
+        <!-- Images (§36/§37) + product-card photo picker -->
+        <?php
+        $cardImg  = null; $hoverImg = null;
+        foreach ($images as $im) {
+            if (! empty($im['is_primary']) && ! $cardImg) { $cardImg = $im; }
+            if (! empty($im['is_hover']) && empty($im['is_primary']) && ! $hoverImg) { $hoverImg = $im; }
+        }
+        $cardImg = $cardImg ?: ($images[0] ?? null);
+        ?>
+        <div class="bg-surface rounded-lg border border-line p-5" data-image-manager>
+            <h2 class="font-medium">Images</h2>
             <?php if (! empty($images)): ?>
-                <div class="grid grid-cols-4 sm:grid-cols-6 gap-3 mb-4">
-                    <?php foreach ($images as $img): ?>
-                        <div class="relative aspect-square rounded-md overflow-hidden bg-sand border <?= $img['is_primary'] ? 'border-wood ring-1 ring-wood' : 'border-line' ?>">
-                            <img src="<?= esc(product_image($img['image']), 'attr') ?>" alt="" class="w-full h-full object-cover">
-                            <?php if ($img['is_primary']): ?><span class="absolute top-1 left-1 badge-soft text-[10px]">Primary</span><?php endif ?>
+                <input type="hidden" name="images_present" value="1">
+                <p class="field-help !mt-0.5 mb-4">Choose which photo the product card shows by default, and which one it swaps to when a shopper hovers over it. Changes apply when you save.</p>
+
+                <div class="grid sm:grid-cols-[1fr_14rem] gap-5 items-start">
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3" role="group" aria-label="Product photos">
+                        <?php foreach ($images as $img):
+                            $iid   = (int) $img['id'];
+                            $isCard  = $cardImg && (int) $cardImg['id'] === $iid;
+                            $isHover = $hoverImg && (int) $hoverImg['id'] === $iid;
+                        ?>
+                            <div class="rounded-md border border-line p-2 space-y-2 transition-opacity" data-img-tile data-id="<?= $iid ?>" data-src="<?= esc(product_image($img['image']), 'attr') ?>">
+                                <div class="relative aspect-square rounded overflow-hidden bg-sand">
+                                    <img src="<?= esc(product_image($img['image']), 'attr') ?>" alt="<?= esc($img['alt_text'] ?: 'Product photo', 'attr') ?>" class="w-full h-full object-cover" loading="lazy">
+                                    <span class="absolute top-1 left-1 flex flex-col gap-1">
+                                        <span class="badge-soft text-[10px] <?= $isCard ? '' : 'hidden' ?>" data-badge-card>Card photo</span>
+                                        <span class="badge-soft text-[10px] <?= $isHover ? '' : 'hidden' ?>" data-badge-hover>Hover photo</span>
+                                    </span>
+                                </div>
+                                <label class="flex items-center gap-1.5 text-xs cursor-pointer">
+                                    <input type="radio" name="card_image" value="<?= $iid ?>" <?= $isCard ? 'checked' : '' ?> data-pick="card" class="w-4 h-4 text-wood focus:ring-wood/30"> Card photo
+                                </label>
+                                <label class="flex items-center gap-1.5 text-xs cursor-pointer">
+                                    <input type="radio" name="hover_image" value="<?= $iid ?>" <?= $isHover ? 'checked' : '' ?> data-pick="hover" class="w-4 h-4 text-wood focus:ring-wood/30"> Hover photo
+                                </label>
+                                <label class="flex items-center gap-1.5 text-xs text-danger cursor-pointer">
+                                    <input type="checkbox" name="delete_images[]" value="<?= $iid ?>" data-remove class="w-4 h-4 rounded border-line text-danger focus:ring-danger/30"> Remove
+                                </label>
+                            </div>
+                        <?php endforeach ?>
+                    </div>
+
+                    <!-- Live card preview -->
+                    <div class="sm:sticky sm:top-4">
+                        <p class="text-xs font-medium mb-2">Card preview <span class="text-muted font-normal">(hover it)</span></p>
+                        <div class="group relative aspect-square rounded-lg overflow-hidden bg-sand border border-line" data-card-preview tabindex="0" aria-label="Product card preview">
+                            <img src="<?= esc(product_image($cardImg['image'] ?? null), 'attr') ?>" alt="" class="absolute inset-0 w-full h-full object-cover transition-opacity duration-300 group-hover:opacity-0 group-focus:opacity-0" data-prev-card>
+                            <img src="<?= esc(product_image($hoverImg['image'] ?? null), 'attr') ?>" alt="" class="absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-300 group-hover:opacity-100 group-focus:opacity-100 <?= $hoverImg ? '' : 'hidden' ?>" data-prev-hover>
                         </div>
-                    <?php endforeach ?>
+                        <label class="flex items-center gap-1.5 text-xs mt-3 cursor-pointer">
+                            <input type="radio" name="hover_image" value="0" <?= $hoverImg ? '' : 'checked' ?> data-pick="hover" data-none class="w-4 h-4 text-wood focus:ring-wood/30"> No hover photo
+                        </label>
+                        <p class="text-xs text-muted mt-1.5" data-prev-note></p>
+                    </div>
                 </div>
+                <hr class="border-line my-5">
             <?php endif ?>
-            <label class="field-label" for="images">Upload images (JPG/PNG/WebP, max 6MB each)</label>
+            <label class="field-label" for="images"><?= empty($images) ? 'Upload images' : 'Add more images' ?> (JPG/PNG/WebP, max 6MB each)</label>
             <input id="images" name="images[]" type="file" accept="image/jpeg,image/png,image/webp" multiple class="block w-full text-sm text-muted file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-ink file:text-bg file:text-sm hover:file:bg-wood-dark file:cursor-pointer">
-            <p class="field-help">Images are validated, re-encoded to WebP and resized automatically.</p>
+            <p class="field-help"><?= empty($images)
+                ? 'The first photo becomes the card photo and the second its hover photo; you can change both after saving.'
+                : 'New photos appear here after you save, where you can make them the card or hover photo.' ?> Images are validated, re-encoded to WebP and resized automatically.</p>
         </div>
 
         <?php
@@ -337,4 +384,5 @@ $action = $p ? base_url('admin/products/update/' . $p['id']) : base_url('admin/p
 <?= $this->section('scripts') ?>
 <script src="<?= base_url('assets/js/admin_variants.js') ?>?v=6"></script>
 <script src="<?= base_url('assets/js/admin_addons.js') ?>?v=1"></script>
+<script src="<?= base_url('assets/js/admin_images.js') ?>?v=1"></script>
 <?= $this->endSection() ?>

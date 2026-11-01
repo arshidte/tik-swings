@@ -29,8 +29,13 @@ class Settings extends BaseController
     {
         $model = new SettingModel();
         foreach ($this->fields as $key) {
-            if ($this->request->getPost($key) !== null) {
-                $model->put($key, (string) $this->request->getPost($key));
+            $val = $this->request->getPost($key);
+            if ($val !== null) {
+                // F-010: Protect secret from accidental blanking
+                if ($key === 'razorpay_key_secret' && trim((string) $val) === '') {
+                    continue;
+                }
+                $model->put($key, (string) $val);
             }
         }
         cache()->delete('settings_map');

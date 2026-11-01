@@ -19,6 +19,7 @@ $errors  = session('errors') ?? [];
 
     <form method="post" action="<?= base_url('checkout/place') ?>" class="lg:grid lg:grid-cols-[1fr_380px] lg:gap-10 items-start">
         <?= csrf_field() ?>
+        <input type="hidden" name="idempotency_key" value="<?= esc($idempotencyKey ?? '', 'attr') ?>">
         <div class="space-y-8">
             <!-- Address -->
             <section class="card p-6">

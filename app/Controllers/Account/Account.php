@@ -9,6 +9,7 @@ use App\Models\OrderModel;
 use App\Models\OrderStatusHistoryModel;
 use App\Models\ShipmentModel;
 use App\Models\UserModel;
+use App\Services\OrderService;
 
 class Account extends BaseController
 {
@@ -59,6 +60,26 @@ class Account extends BaseController
             'shipment' => (new ShipmentModel())->forOrder((int) $order['id']),
             'active'   => 'orders',
         ]);
+    }
+
+    public function cancelOrder(string $number)
+    {
+        $order = (new OrderModel())->where('order_number', $number)->where('user_id', $this->uid())->first();
+        if (! $order) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
+        if (! in_array($order['status'], ['pending', 'confirmed'], true)) {
+            return redirect()->back()->with('error', 'This order is already being processed or shipped and cannot be cancelled directly.');
+        }
+
+        try {
+            (new OrderService())->updateStatus((int) $order['id'], 'cancelled', 'Cancelled by customer from account portal');
+        } catch (\Throwable $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
+
+        return redirect()->to(site_url('account/orders/' . $number))->with('success', 'Your order has been cancelled.');
     }
 
     public function addresses()

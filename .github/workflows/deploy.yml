@@ -1,0 +1,91 @@
+
+name: Deploy TIK Swings
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tik-swings-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      CPANEL_SSH_HOST: ${{ secrets.CPANEL_SSH_HOST }}
+      CPANEL_SSH_PORT: ${{ secrets.CPANEL_SSH_PORT }}
+      CPANEL_SSH_USER: ${{ secrets.CPANEL_SSH_USER }}
+      CPANEL_KNOWN_HOSTS: ${{ secrets.CPANEL_KNOWN_HOSTS }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Build Tailwind CSS
+        run: |
+          npm ci
+          npm run build
+          test -s public/assets/css/app.css
+
+      - name: Validate secrets
+        run: |
+          set -euo pipefail
+          : "${CPANEL_SSH_HOST:?Missing SSH host}"
+          : "${CPANEL_SSH_PORT:?Missing SSH port}"
+          : "${CPANEL_SSH_USER:?Missing SSH user}"
+          : "${CPANEL_KNOWN_HOSTS:?Missing known hosts}"
+
+      - name: Configure SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.CPANEL_SSH_PRIVATE_KEY }}
+
+      - name: Configure known hosts
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$CPANEL_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Create remote staging directory
+        run: |
+          ssh -p "$CPANEL_SSH_PORT" \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            "$CPANEL_SSH_USER@$CPANEL_SSH_HOST" \
+            "mkdir -p /home/yzof03qtp44y/deployment-artifacts/shop"
+
+      - name: Upload compiled CSS
+        run: |
+          scp -P "$CPANEL_SSH_PORT" \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            public/assets/css/app.css \
+            "$CPANEL_SSH_USER@$CPANEL_SSH_HOST:/home/yzof03qtp44y/deployment-artifacts/shop/app.css"
+
+      - name: Deploy application
+        run: |
+          ssh -p "$CPANEL_SSH_PORT" \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            "$CPANEL_SSH_USER@$CPANEL_SSH_HOST" \
+            "bash /home/yzof03qtp44y/scripts/deploy-shop.sh"
+
+      - name: Publish compiled CSS
+        run: |
+          ssh -p "$CPANEL_SSH_PORT" \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            "$CPANEL_SSH_USER@$CPANEL_SSH_HOST" \
+            "cp /home/yzof03qtp44y/deployment-artifacts/shop/app.css /home/yzof03qtp44y/public_html/shop.theinteriorkampany.com/public/assets/css/app.css && test -s /home/yzof03qtp44y/public_html/shop.theinteriorkampany.com/public/assets/css/app.css"

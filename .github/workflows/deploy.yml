@@ -81,7 +81,7 @@ jobs:
         run: |
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          printf '%s\\n' "$CPANEL_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          printf '%s\n' "$CPANEL_KNOWN_HOSTS" > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
 
       - name: Create remote staging directory

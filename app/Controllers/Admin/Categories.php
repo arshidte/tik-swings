@@ -4,12 +4,29 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Models\CategoryModel;
+use App\Services\ImageUploadService;
 
 class Categories extends BaseController
 {
     public function index(): string
     {
-        helper('text');
+        return $this->renderView();
+    }
+
+    public function edit(int $id): string
+    {
+        $model    = new CategoryModel();
+        $category = $model->find($id);
+        if (! $category) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound('Category not found');
+        }
+
+        return $this->renderView($category);
+    }
+
+    private function renderView(?array $editCategory = null): string
+    {
+        helper(['text', 'format']);
 
         $categories = (new CategoryModel())->orderBy('sort_order')->orderBy('name')->findAll();
 
@@ -23,9 +40,10 @@ class Categories extends BaseController
         }
 
         return view('admin/categories', [
-            'title'      => 'Categories',
-            'categories' => $categories,
-            'counts'     => $counts,
+            'title'        => $editCategory ? 'Edit Category: ' . $editCategory['name'] : 'Categories',
+            'categories'   => $categories,
+            'counts'       => $counts,
+            'editCategory' => $editCategory,
         ]);
     }
 
@@ -58,7 +76,7 @@ class Categories extends BaseController
         cache()->delete('categories_nav');
 
         return redirect()->to(site_url('admin/categories'))
-            ->with('success', '"' . $category['name'] . '" deleted. Its products are now uncategorised.');
+            ->with('success', '“' . $category['name'] . '” deleted. Its products are now uncategorised.');
     }
 
     public function store()
@@ -73,20 +91,57 @@ class Categories extends BaseController
 
     private function save(?int $id)
     {
-        helper('text');
+        helper(['text', 'form']);
         $model = new CategoryModel();
-        $name  = trim((string) $this->request->getPost('name'));
-        $slug  = trim((string) $this->request->getPost('slug')) ?: url_title($name, '-', true);
+
+        if ($id) {
+            $existing = $model->find($id);
+            if (! $existing) {
+                return redirect()->to(site_url('admin/categories'))->with('error', 'Category not found.');
+            }
+        }
+
+        $name = trim((string) $this->request->getPost('name'));
+        if ($name === '') {
+            return redirect()->back()->withInput()->with('error', 'Category name is required.');
+        }
+
+        $slug = trim((string) $this->request->getPost('slug')) ?: url_title($name, '-', true);
+
+        // Ensure unique slug (excluding the current category when updating)
+        $slugCheck = $model->where('slug', $slug);
+        if ($id) {
+            $slugCheck->where('id !=', $id);
+        }
+        if ($slugCheck->first()) {
+            return redirect()->back()->withInput()->with('error', 'A category with the slug “' . esc($slug) . '” already exists.');
+        }
 
         $data = [
-            'name' => $name, 'slug' => $slug,
-            'description' => $this->request->getPost('description'),
-            'sort_order'  => (int) $this->request->getPost('sort_order'),
-            'featured'    => $this->request->getPost('featured') ? 1 : 0,
-            'status'      => $this->request->getPost('status') ?: 'active',
+            'name'            => $name,
+            'slug'            => $slug,
+            'description'     => trim((string) $this->request->getPost('description')) ?: null,
+            'sort_order'      => (int) $this->request->getPost('sort_order'),
+            'featured'        => $this->request->getPost('featured') ? 1 : 0,
+            'status'          => $this->request->getPost('status') === 'inactive' ? 'inactive' : 'active',
+            'seo_title'       => trim((string) $this->request->getPost('seo_title')) ?: null,
+            'seo_description' => trim((string) $this->request->getPost('seo_description')) ?: null,
         ];
-        if (! $this->validate(['name' => 'required'])) {
-            return redirect()->back()->withInput()->with('error', 'Category name is required.');
+
+        // Handle image removal
+        if ($this->request->getPost('remove_image')) {
+            $data['image'] = null;
+        }
+
+        // Handle category image file upload
+        $imageFile = $this->request->getFile('image');
+        if ($imageFile && $imageFile->isValid() && ! $imageFile->hasMoved()) {
+            try {
+                $uploadService = new ImageUploadService();
+                $data['image'] = $uploadService->storeProductImage($imageFile);
+            } catch (\Throwable $e) {
+                return redirect()->back()->withInput()->with('error', $e->getMessage());
+            }
         }
 
         if ($id) {
@@ -94,8 +149,11 @@ class Categories extends BaseController
         } else {
             $model->insert($data);
         }
-        $model->clearCache();
 
-        return redirect()->to(site_url('admin/categories'))->with('success', 'Category saved.');
+        $model->clearCache();
+        cache()->delete('categories_nav');
+
+        return redirect()->to(site_url('admin/categories'))
+            ->with('success', $id ? 'Category “' . $name . '” updated.' : 'Category “' . $name . '” created.');
     }
 }

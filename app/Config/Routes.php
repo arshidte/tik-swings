@@ -105,6 +105,7 @@ $routes->group('admin', ['filter' => 'admin'], static function ($routes) {
     $routes->post('products/media/save/(:num)', 'Admin\Products::saveUserMedia/$1');
     $routes->post('products/media/delete/(:num)/(:num)', 'Admin\Products::deleteUserMedia/$1/$2');
     $routes->get('categories', 'Admin\Categories::index');
+    $routes->get('categories/edit/(:num)', 'Admin\Categories::edit/$1');
     $routes->post('categories/store', 'Admin\Categories::store');
     $routes->post('categories/update/(:num)', 'Admin\Categories::update/$1');
     $routes->post('categories/delete/(:num)', 'Admin\Categories::delete/$1');

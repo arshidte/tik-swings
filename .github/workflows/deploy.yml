@@ -40,13 +40,37 @@ jobs:
           npm run build
           test -s public/assets/css/app.css
 
-      - name: Validate secrets
+      - name: Validate SSH configuration
+        shell: bash
         run: |
           set -euo pipefail
           : "${CPANEL_SSH_HOST:?Missing SSH host}"
           : "${CPANEL_SSH_PORT:?Missing SSH port}"
           : "${CPANEL_SSH_USER:?Missing SSH user}"
           : "${CPANEL_KNOWN_HOSTS:?Missing known hosts}"
+
+          python3 - <<'PY'
+          import os, re, sys
+
+          checks = {
+              "CPANEL_SSH_HOST": (r"[A-Za-z0-9.-]+", os.environ["CPANEL_SSH_HOST"]),
+              "CPANEL_SSH_USER": (r"[A-Za-z0-9._-]+", os.environ["CPANEL_SSH_USER"]),
+              "CPANEL_SSH_PORT": (r"[0-9]+", os.environ["CPANEL_SSH_PORT"]),
+          }
+
+          failed = False
+          for name, (pattern, value) in checks.items():
+              valid = re.fullmatch(pattern, value) is not None
+              print(f"{name}: length={len(value)}, syntax={'valid' if valid else 'INVALID'}")
+              if not valid:
+                  bad = [(i, f"U+{ord(ch):04X}") for i, ch in enumerate(value)
+                         if re.fullmatch(pattern, ch) is None]
+                  print(f"  Invalid character positions/code points: {bad}")
+                  failed = True
+
+          if failed:
+              sys.exit("SSH secret formatting validation failed.")
+          PY
 
       - name: Configure SSH
         uses: webfactory/ssh-agent@v0.9.0
@@ -61,33 +85,42 @@ jobs:
           chmod 600 ~/.ssh/known_hosts
 
       - name: Create remote staging directory
+        shell: bash
         run: |
-          ssh -p "$CPANEL_SSH_PORT" \\
-            -o BatchMode=yes \\
-            -o StrictHostKeyChecking=yes \\
-            "$CPANEL_SSH_USER@$CPANEL_SSH_HOST" \\
+          set -euo pipefail
+          DESTINATION="${CPANEL_SSH_USER}@${CPANEL_SSH_HOST}"
+          ssh -p "$CPANEL_SSH_PORT" \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            "$DESTINATION" \
             "mkdir -p /home/yzof03qtp44y/deployment-artifacts/shop"
 
       - name: Upload compiled CSS
+        shell: bash
         run: |
-          scp -P "$CPANEL_SSH_PORT" \\
-            -o BatchMode=yes \\
-            -o StrictHostKeyChecking=yes \\
-            public/assets/css/app.css \\
-            "$CPANEL_SSH_USER@$CPANEL_SSH_HOST:/home/yzof03qtp44y/deployment-artifacts/shop/app.css"
+          set -euo pipefail
+          scp -P "$CPANEL_SSH_PORT" \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            public/assets/css/app.css \
+            "${CPANEL_SSH_USER}@${CPANEL_SSH_HOST}:/home/yzof03qtp44y/deployment-artifacts/shop/app.css"
 
       - name: Deploy application
+        shell: bash
         run: |
-          ssh -p "$CPANEL_SSH_PORT" \\
-            -o BatchMode=yes \\
-            -o StrictHostKeyChecking=yes \\
-            "$CPANEL_SSH_USER@$CPANEL_SSH_HOST" \\
+          set -euo pipefail
+          ssh -p "$CPANEL_SSH_PORT" \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            "${CPANEL_SSH_USER}@${CPANEL_SSH_HOST}" \
             "bash /home/yzof03qtp44y/scripts/deploy-shop.sh"
 
       - name: Publish compiled CSS
+        shell: bash
         run: |
-          ssh -p "$CPANEL_SSH_PORT" \\
-            -o BatchMode=yes \\
-            -o StrictHostKeyChecking=yes \\
-            "$CPANEL_SSH_USER@$CPANEL_SSH_HOST" \\
+          set -euo pipefail
+          ssh -p "$CPANEL_SSH_PORT" \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            "${CPANEL_SSH_USER}@${CPANEL_SSH_HOST}" \
             "cp /home/yzof03qtp44y/deployment-artifacts/shop/app.css /home/yzof03qtp44y/public_html/shop.theinteriorkampany.com/public/assets/css/app.css && test -s /home/yzof03qtp44y/public_html/shop.theinteriorkampany.com/public/assets/css/app.css"

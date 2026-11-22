@@ -311,7 +311,7 @@ if (root) {
 
   // ---------- Accordions (§25, accessible) ----------
   $$('[data-accordion-trigger]').forEach((trigger) => {
-    const panel = trigger.closest('div').parentElement.querySelector('[data-accordion-panel]');
+    const panel = trigger.closest('div').querySelector('[data-accordion-panel]');
     const icon = trigger.querySelector('[data-accordion-icon]');
     trigger.addEventListener('click', () => {
       const open = trigger.getAttribute('aria-expanded') === 'true';

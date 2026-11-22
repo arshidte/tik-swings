@@ -30,13 +30,15 @@ $accordions = array_filter([
     'Description'      => $p['description'],
     'Dimensions'      => $p['dimensions'] ? "Overall size: {$p['dimensions']}. Weight capacity: {$p['weight_capacity']}." : null,
     'Materials'       => $p['material'] ? implode(' · ', array_filter([$p['material'], $p['wood_type'] ?: null, $p['finish'] ? "{$p['finish']} finish" : null])) . '.' : null,
-    'Craftsmanship'   => 'Hand-cut, hand-joined and hand-finished by our artisans. Every piece carries the small marks of the person who made it.',
-    'Installation'    => $p['installation_available'] ? 'Expert installation available across most Indian cities. Recommended for ceiling-mounted swings.' : 'Self-assembly with included hardware and instructions.',
-    'Delivery'        => ($p['delivery_estimate'] ?: '3–5 weeks') . '. We keep you updated at every step.',
-    'Returns'         => '7-day returns on unused, undamaged pieces. Custom orders are made to your spec and are non-returnable.',
-    'Warranty'        => $p['warranty'] ?: '3-year structural warranty.',
-    'Care Instructions' => 'Wipe with a dry cloth, keep out of standing water, and oil the wood once or twice a year.',
+    'Craftsmanship'   => $p['craftsmanship'] ?: null,
+    'Installation'    => $p['installation_available'] ? 'Expert installation available across most Indian cities. Recommended for ceiling-mounted swings.' : null,
+    'Delivery'        => $p['delivery_estimate'] ? "{$p['delivery_estimate']}. We keep you updated at every step." : null,
+    'Returns'         => $p['returns_policy'] ?: null,
+    'Warranty'        => $p['warranty'] ?: null,
+    'Care Instructions' => $p['care_instructions'] ?: null,
 ]);
+// Sections an admin can write as rich text; everything else is plain text with nl2br.
+$richAccordions = ['Description', 'Craftsmanship', 'Returns', 'Care Instructions'];
 ?>
 
 <div class="container-page py-4 sm:py-5"
@@ -226,15 +228,15 @@ $accordions = array_filter([
             <!-- Assurance strip -->
             <ul class="mt-5 grid grid-cols-2 gap-y-3 gap-x-4 text-sm border-t border-line pt-6">
                 <?php
-                $assur = [
+                $assur = array_filter([
                     [
-                        '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>', 
+                        '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
                         $p['delivery_estimate'] ?: 'Handcrafted to order'
                     ],
-                    [
-                        '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>', 
-                        $p['warranty'] ?: '3-year warranty'
-                    ],
+                    $p['warranty'] ? [
+                        '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
+                        $p['warranty']
+                    ] : null,
                     [
                         '<path d="m17 14 3 3.3a1 1 0 0 1-.7 1.7H4.7a1 1 0 0 1-.7-1.7L7 14h-.3a1 1 0 0 1-.7-1.7L9 9h-.2A1 1 0 0 1 8 7.3L12 3l4 4.3a1 1 0 0 1-.8 1.7H15l3 3.3a1 1 0 0 1-.8 1.7H17Z"/><path d="M12 22v-3"/>', 
                         $p['material'] ?: 'Solid wood'
@@ -243,7 +245,7 @@ $accordions = array_filter([
                         '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>', 
                         $p['installation_available'] ? 'Installation available' : 'Easy self-assembly'
                     ],
-                ];
+                ]);
                 foreach ($assur as [$svg_inner, $label]): ?>
                     <li class="flex items-center gap-2 text-muted">
                         <svg class="w-5 h-5 text-wood shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
@@ -269,7 +271,7 @@ $accordions = array_filter([
                         </h3>
                         <div id="acc-<?= $id ?>" class="grid grid-rows-[0fr] transition-all duration-300 ease-out-soft" data-accordion-panel>
                             <div class="overflow-hidden">
-                                <div class="pb-5 text-muted leading-relaxed max-w-prose <?= $heading === 'Description' ? 'product-description' : '' ?>"><?= $heading === 'Description' ? $body : nl2br(esc($body)) ?></div>
+                                <div class="pb-5 text-muted leading-relaxed max-w-prose <?= in_array($heading, $richAccordions, true) ? 'product-description' : '' ?>"><?= in_array($heading, $richAccordions, true) ? cms_html($body) : nl2br(esc($body)) ?></div>
                             </div>
                         </div>
                     </div>
@@ -378,5 +380,5 @@ $accordions = array_filter([
 <?= $this->endSection() ?>
 
 <?= $this->section('scripts') ?>
-<script type="module" src="<?= base_url('assets/js/product.js') ?>"></script>
+<script type="module" src="<?= base_url('assets/js/product.js') ?>?v=2"></script>
 <?= $this->endSection() ?>

@@ -13,6 +13,7 @@ class ProductModel extends Model
     protected $useSoftDeletes   = true;
     protected $allowedFields    = [
         'category_id', 'name', 'slug', 'sku', 'short_description', 'description',
+        'craftsmanship', 'returns_policy', 'care_instructions',
         'price', 'compare_price', 'cost_price', 'stock', 'stock_status', 'has_variants',
         'material', 'wood_type', 'finish', 'dimensions', 'weight_capacity', 'warranty',
         'delivery_estimate', 'installation_available', 'is_customizable',

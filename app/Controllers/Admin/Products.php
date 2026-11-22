@@ -13,6 +13,7 @@ use App\Models\ProductOptionModel;
 use App\Models\ProductOptionValueModel;
 use App\Models\ProductUserMediaModel;
 use App\Models\ProductVariantModel;
+use App\Services\HtmlSanitizer;
 use App\Services\ImageUploadService;
 
 class Products extends BaseController
@@ -181,7 +182,10 @@ class Products extends BaseController
             'sku'               => trim((string) $this->request->getPost('sku')),
             'category_id'       => $this->request->getPost('category_id') ?: null,
             'short_description' => $this->request->getPost('short_description'),
-            'description'       => $this->request->getPost('description'),
+            'description'       => (new HtmlSanitizer())->clean((string) $this->request->getPost('description')),
+            'craftsmanship'     => $this->cleanOptionalHtml('craftsmanship'),
+            'returns_policy'    => $this->cleanOptionalHtml('returns_policy'),
+            'care_instructions' => $this->cleanOptionalHtml('care_instructions'),
             'price'             => (float) $this->request->getPost('price'),
             'compare_price'     => $this->request->getPost('compare_price') ?: null,
             'cost_price'        => $this->request->getPost('cost_price') ?: null,
@@ -202,6 +206,17 @@ class Products extends BaseController
             'seo_description'   => $this->request->getPost('seo_description'),
             'seo_keywords'      => $this->request->getPost('seo_keywords'),
         ];
+    }
+
+    /**
+     * Sanitize an optional rich-text override field; blank means "use the
+     * site's default text for this section" (see App\Views\frontend\product).
+     */
+    private function cleanOptionalHtml(string $field): ?string
+    {
+        $clean = (new HtmlSanitizer())->clean((string) $this->request->getPost($field));
+
+        return $clean === '' ? null : $clean;
     }
 
     /**

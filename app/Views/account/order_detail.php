@@ -62,7 +62,7 @@ $ship = $order['shipping_address'] ? json_decode($order['shipping_address'], tru
                     <div class="flex justify-between"><dt class="text-muted">Shipping</dt><dd class="tabular-nums"><?= $order['shipping'] > 0 ? price($order['shipping']) : 'Free' ?></dd></div>
                     <div class="flex justify-between font-medium border-t border-line pt-2 mt-1 text-base"><dt>Total</dt><dd class="tabular-nums"><?= price($order['total']) ?></dd></div>
                 </dl>
-                <p class="text-xs text-muted mt-4">Payment: <?= esc(ucfirst($order['payment_method'] ?? 'N/A')) ?> · <?= esc(ucfirst($order['payment_status'])) ?></p>
+                <p class="text-xs text-muted mt-4">Payment: <?= esc(payment_method_label($order['payment_method'] ?? null)) ?> · <?= esc(payment_status_label($order['payment_status'])) ?></p>
             </div>
 
             <?php if ($shipment): ?>

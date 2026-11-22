@@ -281,6 +281,11 @@ class CartService
                 continue;
             }
             $variant   = $l['variant_id'] ? ($variantMap[$l['variant_id']] ?? null) : null;
+            // The chosen variant was removed (cart_items.variant_id is SET NULL):
+            // never fall back to the base price for a product sold by variant.
+            if ((int) $p['has_variants'] === 1 && (! $variant || (int) $variant['product_id'] !== (int) $p['id'])) {
+                continue;
+            }
             $unitPrice = (float) ($variant['price'] ?? $p['price']);
             $qty       = (int) $l['quantity'];
             $lineTotal = $unitPrice * $qty;
@@ -295,6 +300,8 @@ class CartService
                 'variant'    => $variant ? $this->variantLabel($variant) : null,
                 'sku'        => $variant['sku'] ?? $p['sku'],
                 'image'      => product_image($variant['image'] ?? ($imageByProduct[$p['id']] ?? null)),
+                // Stored path (not a URL) for order snapshots, so they survive a domain change.
+                'image_path' => $variant['image'] ?? ($imageByProduct[$p['id']] ?? null),
                 'unit_price' => $unitPrice,
                 'quantity'   => $qty,
                 'line_total' => $lineTotal,

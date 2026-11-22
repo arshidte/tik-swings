@@ -31,6 +31,84 @@ class OrderService
     ];
 
     /**
+     * Minutes an unpaid online order holds its stock. After that it is
+     * cancelled and the stock goes back (releaseUnpaidOnlineOrders()).
+     */
+    public const UNPAID_HOLD_MINUTES = 30;
+
+    /**
+     * Statuses an admin may move this order to. A cancelled order that was
+     * nevertheless paid (a payment that arrived after its hold expired and the
+     * items had sold out) can still be marked refunded.
+     *
+     * @return list<string>
+     */
+    public static function nextStatuses(array $order): array
+    {
+        if ($order['status'] === 'cancelled' && $order['payment_status'] === 'paid') {
+            return ['refunded'];
+        }
+
+        return self::ALLOWED_TRANSITIONS[$order['status']] ?? [];
+    }
+
+    /**
+     * Cancel unpaid online orders older than the hold window and return their
+     * stock. Each order is claimed with a conditional update, so a payment
+     * confirmed at the same moment wins and that order is left alone.
+     *
+     * @return int number of orders released
+     */
+    public function releaseUnpaidOnlineOrders(int $minutes = self::UNPAID_HOLD_MINUTES): int
+    {
+        $db     = db_connect();
+        $cutoff = date('Y-m-d H:i:s', time() - $minutes * 60);
+        $ids    = array_column($db->table('orders')->select('id')
+            ->where('status', 'pending')->where('payment_status', 'pending')
+            ->where('payment_method !=', 'cod')->where('created_at <', $cutoff)
+            ->get()->getResultArray(), 'id');
+
+        $released = 0;
+        foreach ($ids as $id) {
+            $db->transStart();
+            $db->table('orders')->where('id', $id)
+                ->where('status', 'pending')->where('payment_status', 'pending')
+                ->update(['status' => 'cancelled', 'stock_restored' => 1, 'updated_at' => date('Y-m-d H:i:s')]);
+            if ($db->affectedRows() === 0) {
+                $db->transComplete();
+
+                continue;
+            }
+            $this->restoreStock((int) $id);
+            $this->addHistory((int) $id, 'cancelled', "Payment not completed within {$minutes} minutes; items released back to stock.");
+            $db->transComplete();
+
+            if ($db->transStatus()) {
+                $released++;
+            } else {
+                log_message('error', 'Releasing unpaid order {id} failed.', ['id' => $id]);
+            }
+        }
+
+        return $released;
+    }
+
+    /**
+     * releaseUnpaidOnlineOrders() at most once a minute, for page loads that
+     * show stock (a cron job running `php spark orders:release-unpaid` is the
+     * primary trigger).
+     */
+    public function releaseUnpaidOnlineOrdersThrottled(): void
+    {
+        $cache = cache();
+        if ($cache->get('unpaid_orders_released_at')) {
+            return;
+        }
+        $cache->save('unpaid_orders_released_at', time(), 60);
+        $this->releaseUnpaidOnlineOrders();
+    }
+
+    /**
      * Create an order from the current cart snapshot for a user.
      * Enforces server-side idempotency (F-006) and atomic inventory / coupon reservation (F-003, F-004).
      *
@@ -45,6 +123,11 @@ class OrderService
         ?string $idempotencyKey = null
     ): array {
         $orders = new OrderModel();
+
+        // Free stock held by abandoned online payments before checking stock.
+        // Runs first so an expired order found by its idempotency key below is
+        // returned as cancelled (the caller then asks the customer to re-order).
+        $this->releaseUnpaidOnlineOrders();
 
         // 1. Check idempotency key before any operations (F-006).
         if ($idempotencyKey !== null && $idempotencyKey !== '') {
@@ -74,7 +157,11 @@ class OrderService
             if (! $product || $product['status'] !== 'active') {
                 throw new \RuntimeException('“' . ($line['name'] ?? 'An item') . '” is no longer available.');
             }
-            $variant   = $line['variant_id'] ? $variants->find($line['variant_id']) : null;
+            $variant = $line['variant_id'] ? $variants->find($line['variant_id']) : null;
+            if ((int) $product['has_variants'] === 1
+                && (! $variant || (int) $variant['product_id'] !== (int) $product['id'] || $variant['status'] !== 'active')) {
+                throw new \RuntimeException('The option you chose for “' . $product['name'] . '” is no longer available. Please remove it and add it again.');
+            }
             $unitPrice = (float) ($variant['price'] ?? $product['price']); // trusted price
             $stock     = $variant ? (int) $variant['stock'] : (int) $product['stock'];
             $qty       = (int) $line['quantity'];
@@ -143,7 +230,7 @@ class OrderService
                 'product_name' => $v['product']['name'],
                 'variant_name' => $v['variant']['name'] ?? null,
                 'sku'          => $v['variant']['sku'] ?? $v['product']['sku'],
-                'image'        => $v['line']['image'] ?? null,
+                'image'        => $v['line']['image_path'] ?? null,
                 'options'      => ! empty($v['line']['options']) ? json_encode($v['line']['options']) : null,
                 'unit_price'   => $v['unitPrice'],
                 'quantity'     => $v['qty'],
@@ -217,9 +304,16 @@ class OrderService
     }
 
     /**
-     * Mark an order paid (F-002). Rejects replayed requests if order is already paid.
+     * Mark an order paid (F-002). Returns true only for the call that actually
+     * confirmed it, so callers can fire one-time side effects (e.g. SMS).
+     * Replays and concurrent duplicates return false and change nothing.
+     *
+     * A payment can still land after the unpaid hold expired and the stock was
+     * released. Then the items are reserved again if still in stock and the
+     * order is confirmed; if they sold out, the payment is recorded, the order
+     * stays cancelled with a "refund this payment" note, and this returns false.
      */
-    public function markPaid(int $orderId, string $providerRef = '', array $payload = []): void
+    public function markPaid(int $orderId, string $providerRef = '', array $payload = []): bool
     {
         $orders = new OrderModel();
         $order  = $orders->find($orderId);
@@ -229,31 +323,110 @@ class OrderService
 
         // Replay protection: if already paid, do not re-process
         if ($order['payment_status'] === 'paid') {
-            return;
+            return false;
         }
+
+        $expired = $order['status'] === 'cancelled' && (int) $order['stock_restored'] === 1;
 
         $db = db_connect();
         $db->transStart();
 
-        $orders->update($orderId, ['payment_status' => 'paid', 'status' => 'confirmed']);
+        $reserved = $expired ? $this->reserveStock($orderId) : true;
+        $status   = $reserved ? 'confirmed' : 'cancelled';
+        $update   = ['payment_status' => 'paid', 'status' => $status, 'updated_at' => date('Y-m-d H:i:s')];
+        if ($expired && $reserved) {
+            $update['stock_restored'] = 0;
+        }
+
+        // Conditional update: only one concurrent caller can flip the order to paid.
+        $db->table('orders')
+            ->where('id', $orderId)
+            ->where('payment_status !=', 'paid')
+            ->update($update);
+
+        if ($db->affectedRows() === 0) {
+            $db->transRollback(); // also undoes any stock reserved above
+
+            return false;
+        }
+
         (new PaymentModel())->where('order_id', $orderId)->set([
             'status'       => 'captured',
             'provider_ref' => $providerRef,
             'payload'      => json_encode($payload),
         ])->update();
 
-        $this->addHistory($orderId, 'confirmed', 'Payment received' . ($providerRef ? ' (Ref: ' . $providerRef . ')' : ''));
+        $ref = $providerRef ? ' (Ref: ' . $providerRef . ')' : '';
+        $this->addHistory($orderId, $status, match (true) {
+            ! $expired => 'Payment received' . $ref,
+            $reserved  => 'Payment received after the ' . self::UNPAID_HOLD_MINUTES . '-minute hold expired' . $ref . '; items reserved again.',
+            default    => 'Payment received after the ' . self::UNPAID_HOLD_MINUTES . '-minute hold expired' . $ref . ', but the items had sold out. Refund this payment.',
+        });
 
         $db->transComplete();
         if ($db->transStatus() === false) {
             throw new \RuntimeException('Failed to record payment confirmation.');
         }
+
+        return $reserved;
     }
 
-    public function confirmCod(int $orderId): void
+    /**
+     * Take an order's items out of stock again (all or nothing). Made-to-order
+     * products may go below zero, matching checkout.
+     */
+    private function reserveStock(int $orderId): bool
     {
-        (new OrderModel())->update($orderId, ['status' => 'confirmed']);
+        $db       = db_connect();
+        $products = new ProductModel();
+        $taken    = [];
+
+        foreach ((new OrderItemModel())->forOrder($orderId) as $item) {
+            $qty = (int) $item['quantity'];
+            if ($qty <= 0) {
+                continue;
+            }
+            $product = $item['product_id'] ? $products->withDeleted()->find($item['product_id']) : null;
+            [$table, $id] = $item['variant_id'] ? ['product_variants', $item['variant_id']] : ['products', $item['product_id']];
+
+            $query = $db->table($table)->set('stock', 'stock - ' . $qty, false)->where('id', $id);
+            if (! $product || $product['stock_status'] !== 'made_to_order') {
+                $query->where('stock >=', $qty);
+            }
+            $query->update();
+
+            if ($db->affectedRows() === 0) {
+                foreach ($taken as [$t, $tid, $n]) {
+                    $db->table($t)->set('stock', 'stock + ' . $n, false)->where('id', $tid)->update();
+                }
+
+                return false;
+            }
+            $taken[] = [$table, $id, $qty];
+        }
+
+        return true;
+    }
+
+    /**
+     * Confirm a pay-on-delivery order. Returns true only when this call moved it
+     * from pending to confirmed (retries/duplicates return false).
+     */
+    public function confirmCod(int $orderId): bool
+    {
+        $db = db_connect();
+        $db->table('orders')
+            ->where('id', $orderId)
+            ->where('status', 'pending')
+            ->update(['status' => 'confirmed', 'updated_at' => date('Y-m-d H:i:s')]);
+
+        if ($db->affectedRows() === 0) {
+            return false;
+        }
+
         $this->addHistory($orderId, 'confirmed', 'Order confirmed (pay on delivery)');
+
+        return true;
     }
 
     /**
@@ -273,7 +446,7 @@ class OrderService
             return;
         }
 
-        $allowed = self::ALLOWED_TRANSITIONS[$currentStatus] ?? [];
+        $allowed = self::nextStatuses($order);
         if (! in_array($status, $allowed, true)) {
             throw new \DomainException("Cannot change order status from '{$currentStatus}' to '{$status}'.");
         }
@@ -312,7 +485,7 @@ class OrderService
     {
         $items    = (new OrderItemModel())->forOrder($orderId);
         $products = new ProductModel();
-        $variants = new ProductVariantModel();
+        $db       = db_connect();
 
         foreach ($items as $item) {
             $qty = (int) $item['quantity'];
@@ -320,7 +493,14 @@ class OrderService
                 continue;
             }
             if (! empty($item['variant_id'])) {
-                $variants->set('stock', 'stock + ' . $qty, false)->where('id', $item['variant_id'])->update();
+                $db->table('product_variants')->set('stock', 'stock + ' . $qty, false)
+                    ->where('id', $item['variant_id'])->update();
+                // Variant IDs from before variants were updated in place may no
+                // longer exist; match the product's current variant by SKU.
+                if ($db->affectedRows() === 0 && ! empty($item['product_id']) && ! empty($item['sku'])) {
+                    $db->table('product_variants')->set('stock', 'stock + ' . $qty, false)
+                        ->where('product_id', $item['product_id'])->where('sku', $item['sku'])->update();
+                }
             } elseif (! empty($item['product_id'])) {
                 $products->set('stock', 'stock + ' . $qty, false)->where('id', $item['product_id'])->update();
             }

@@ -28,7 +28,7 @@
                     <td class="px-4 py-3 text-muted hidden sm:table-cell"><?= esc(date('M j, Y', strtotime($o['created_at']))) ?></td>
                     <td class="px-4 py-3"><?= esc($o['email']) ?></td>
                     <td class="px-4 py-3 tabular-nums font-medium"><?= price($o['total']) ?></td>
-                    <td class="px-4 py-3"><span class="badge <?= $o['payment_status'] === 'paid' ? 'bg-success/10 text-success' : 'bg-sand text-wood-dark' ?>"><?= esc($o['payment_status']) ?></span></td>
+                    <td class="px-4 py-3"><span class="badge <?= $o['payment_status'] === 'paid' ? 'bg-success/10 text-success' : 'bg-sand text-wood-dark' ?>"><?= esc(payment_status_label($o["payment_status"])) ?></span></td>
                     <td class="px-4 py-3"><span class="badge <?= order_status_class($o['status']) ?>"><?= order_status_label($o['status']) ?></span></td>
                 </tr>
             <?php endforeach ?>

@@ -10,6 +10,7 @@ use App\Models\OrderModel;
 use App\Models\UserModel;
 use App\Services\CartService;
 use App\Services\OrderService;
+use App\Services\SmsService;
 
 class Checkout extends BaseController
 {
@@ -55,10 +56,12 @@ class Checkout extends BaseController
             'line1'     => 'required|max_length[190]',
             'city'      => 'required|max_length[80]',
             'state'     => 'required|max_length[80]',
-            'pincode'   => 'required|min_length[4]|max_length[12]',
+            'pincode'   => AddressModel::PINCODE_RULE,
             'payment_method' => 'required',
         ];
-        if (! $this->validate($rules)) {
+        $post            = $this->request->getPost();
+        $post['pincode'] = AddressModel::normalizePincode($post['pincode'] ?? '');
+        if (! $this->validateData($post, $rules, ['pincode' => ['regex_match' => AddressModel::PINCODE_MESSAGE]])) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
@@ -74,7 +77,7 @@ class Checkout extends BaseController
             'line2'     => $this->request->getPost('line2'),
             'city'      => $this->request->getPost('city'),
             'state'     => $this->request->getPost('state'),
-            'pincode'   => $this->request->getPost('pincode'),
+            'pincode'   => $post['pincode'],
             'country'   => 'India',
         ];
         $customer = ['email' => $this->request->getPost('email'), 'phone' => $shipping['phone']];
@@ -99,6 +102,23 @@ class Checkout extends BaseController
             return redirect()->back()->withInput()->with('error', $e->getMessage());
         }
 
+        // An idempotent retry returns the order created by the first submit; follow
+        // that order's own payment method so an unpaid online order is never
+        // confirmed as cash on delivery (e.g. Back button, then COD chosen).
+        $method = (new PaymentManager())->get((string) $order['payment_method']) ?? $method;
+
+        // A retry can return an order that was already paid, or one whose
+        // unpaid hold expired and was cancelled; never reopen payment for those.
+        if ($order['payment_status'] === 'paid') {
+            $this->rememberOrder($order['order_number']);
+
+            return redirect()->to(site_url('checkout/confirmation/' . $order['order_number']));
+        }
+        if ($order['status'] === 'cancelled') {
+            return redirect()->to(site_url('checkout'))->with('error', 'That checkout expired after '
+                . OrderService::UNPAID_HOLD_MINUTES . ' minutes without payment, so the items were released. Please place your order again.');
+        }
+
         // Remember the order in this session so a guest can view its
         // confirmation and later claim it into a new account.
         $this->rememberOrder($order['order_number']);
@@ -120,14 +140,18 @@ class Checkout extends BaseController
             }
 
             return view('checkout/pay', [
-                'meta'   => ['title' => 'Complete Payment — ' . store_name()],
-                'order'  => $order,
-                'intent' => $intent,
+                'meta'      => ['title' => 'Complete Payment — ' . store_name()],
+                'order'     => $order,
+                'intent'    => $intent,
+                'holdUntil' => strtotime($order['created_at']) + OrderService::UNPAID_HOLD_MINUTES * 60,
             ]);
         }
 
-        // Offline (COD): confirm immediately and clear the cart.
-        (new OrderService())->confirmCod((int) $order['id']);
+        // Offline (COD): confirm immediately and clear the cart. The SMS goes out
+        // only when this request confirmed the order (not on a retry).
+        if ((new OrderService())->confirmCod((int) $order['id'])) {
+            (new SmsService())->sendForOrder('order_placed_cod', $order);
+        }
         (new CartService())->clear();
 
         return redirect()->to(site_url('checkout/confirmation/' . $order['order_number']));
@@ -198,9 +222,21 @@ class Checkout extends BaseController
             }
         }
 
-        (new OrderService())->markPaid((int) $order['id'], $paymentId, $payload);
-        (new CartService())->clear();
+        $justPaid = (new OrderService())->markPaid((int) $order['id'], $paymentId, $payload);
         session()->remove('pending_order');
+
+        // Paid after the hold expired and the items sold out meanwhile: the
+        // order stays cancelled and the admin refunds it (see OrderService::markPaid).
+        if ((new OrderModel())->find((int) $order['id'])['status'] === 'cancelled') {
+            return $this->jsonError('Your payment went through, but these items sold out while the payment window was open. We will refund the full amount; no action is needed from you.', 409);
+        }
+
+        (new CartService())->clear();
+
+        // One confirmation SMS per order: only the request that marked it paid sends it.
+        if ($justPaid) {
+            (new SmsService())->sendForOrder('order_confirmed', $order);
+        }
 
         return $this->jsonSuccess('Payment successful.', ['redirect' => site_url('checkout/confirmation/' . $order['order_number'])]);
     }

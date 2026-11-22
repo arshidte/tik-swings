@@ -49,7 +49,8 @@ class Orders extends BaseController
             'items'    => (new OrderItemModel())->forOrder($id),
             'history'  => (new OrderStatusHistoryModel())->forOrder($id),
             'shipment' => (new ShipmentModel())->forOrder($id),
-            'statuses' => ['pending', 'confirmed', 'processing', 'shipped', 'out_for_delivery', 'delivered', 'cancelled', 'refunded'],
+            // Current status first, then only the moves OrderService allows from it.
+            'statuses' => array_merge([$order['status']], OrderService::nextStatuses($order)),
             'couriers' => ['a1parcel' => 'A1 Parcel Service', 'apscargo' => 'APS Cargo'],
         ]);
     }

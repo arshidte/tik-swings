@@ -2,6 +2,7 @@
 
 namespace App\Database\Seeds;
 
+use App\Models\ProductModel;
 use CodeIgniter\Database\Seeder;
 
 class CatalogSeeder extends Seeder
@@ -108,11 +109,13 @@ class CatalogSeeder extends Seeder
         foreach ($products as $p) {
             [$name, $slug, $cat, $price, $compare, $wood, $finish, $dims, $cap, $featured, $custom, $short, $long] = $p;
             $sku = 'SG-' . str_pad((string) $skuN++, 4, '0', STR_PAD_LEFT);
+            $pct = round(($compare - $price) / $compare * 100, 2);
 
             $db->table('products')->insert([
                 'category_id' => $catIds[$cat], 'name' => $name, 'slug' => $slug, 'sku' => $sku,
                 'short_description' => $short, 'description' => $long,
-                'price' => $price, 'compare_price' => $compare, 'cost_price' => round($price * 0.55),
+                'price' => $price, 'discount_percent' => $pct, 'compare_price' => ProductModel::compareAtPrice($price, $pct),
+                'cost_price' => round($price * 0.55),
                 'stock' => random_int(4, 30), 'stock_status' => 'in_stock', 'has_variants' => $custom ? 1 : 0,
                 'material' => 'Solid ' . $wood, 'wood_type' => $wood, 'finish' => $finish,
                 'dimensions' => $dims, 'weight_capacity' => $cap,
@@ -153,7 +156,7 @@ class CatalogSeeder extends Seeder
                     $vsku = $sku . '-' . strtoupper(substr($sizeVal, 0, 3));
                     $db->table('product_variants')->insert([
                         'product_id' => $pid, 'sku' => $vsku, 'name' => $name . ' — ' . $vname,
-                        'price' => $price + $delta, 'compare_price' => $compare + $delta,
+                        'price' => $price + $delta, 'compare_price' => ProductModel::compareAtPrice($price + $delta, $pct),
                         'stock' => random_int(3, 15),
                         'image' => "assets/images/products/{$slug}-1.svg",
                         'is_default' => $isDefault, 'status' => 'active',

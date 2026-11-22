@@ -20,8 +20,12 @@ class PaymentManager
             $methods[$razorpay->key()] = $razorpay;
         }
 
-        $cod = new CodPaymentService();
-        $methods[$cod->key()] = $cod;
+        // Cash on delivery is off unless COD_ENABLED=true in .env. Unlisted
+        // methods are also rejected at checkout, not just hidden.
+        if ((bool) env('COD_ENABLED', false)) {
+            $cod = new CodPaymentService();
+            $methods[$cod->key()] = $cod;
+        }
 
         return $methods;
     }

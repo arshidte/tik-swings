@@ -22,8 +22,21 @@ class AddressModel extends Model
         'line1'     => 'required|max_length[190]',
         'city'      => 'required|max_length[80]',
         'state'     => 'required|max_length[80]',
-        'pincode'   => 'required|min_length[4]|max_length[12]',
+        'pincode'   => self::PINCODE_RULE,
     ];
+    protected $validationMessages = [
+        'pincode' => ['regex_match' => self::PINCODE_MESSAGE],
+    ];
+
+    /** Indian PIN code: six digits, not starting with 0 (run normalizePincode() first). */
+    public const PINCODE_RULE    = 'required|regex_match[/^[1-9][0-9]{5}$/]';
+    public const PINCODE_MESSAGE = 'Enter a valid 6-digit PIN code.';
+
+    /** Accept "682 001" as typed; store "682001". */
+    public static function normalizePincode(?string $pincode): string
+    {
+        return preg_replace('/\s+/', '', trim((string) $pincode)) ?? '';
+    }
 
     public function forUser(int $userId): array
     {

@@ -20,6 +20,9 @@ class AdminFilter implements FilterInterface
             return redirect()->to(site_url('login'))->with('info', 'Please sign in to continue.');
         }
         if ($session->get('user_role') !== 'admin') {
+            // Filters run before BaseController loads its helpers; the page layout needs them.
+            helper(['url', 'form', 'text', 'format', 'store']);
+
             return service('response')->setStatusCode(403)
                 ->setBody(view('errors/custom/403'));
         }

@@ -9,6 +9,7 @@ use App\Models\ProductOptionValueModel;
 use App\Models\ProductUserMediaModel;
 use App\Models\ProductVariantModel;
 use App\Models\ReviewModel;
+use App\Services\OrderService;
 
 class Product extends BaseController
 {
@@ -17,6 +18,9 @@ class Product extends BaseController
 
     public function show(string $slug)
     {
+        // Return stock held by abandoned online payments before showing availability.
+        (new OrderService())->releaseUnpaidOnlineOrdersThrottled();
+
         $model   = new ProductModel();
         $product = $model->findDetailBySlug($slug);
         if (! $product) {

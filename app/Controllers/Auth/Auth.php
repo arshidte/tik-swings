@@ -133,12 +133,13 @@ class Auth extends BaseController
                 $emailService->setTo($email);
                 $emailService->setSubject('Password Reset — ' . store_name());
                 $emailService->setMessage("Hello " . esc($user['first_name']) . ",\n\nWe received a request to reset your password. Click the link below to set a new password:\n\n{$resetUrl}\n\nThis link is valid for 1 hour. If you did not request this, you can safely ignore this email.\n\nWarm regards,\n" . store_name());
-                @$emailService->send(false);
+                // Never log $resetUrl: anyone reading the logs could use it to take over the account.
+                if (! @$emailService->send(false)) {
+                    log_message('error', 'Password reset email could not be sent to user #{id}.', ['id' => $user['id']]);
+                }
             } catch (\Throwable $e) {
                 log_message('error', 'Password reset email failed: ' . $e->getMessage());
             }
-
-            log_message('info', "Password reset link generated for {$email}: {$resetUrl}");
         }
 
         return redirect()->to(site_url('forgot-password'))

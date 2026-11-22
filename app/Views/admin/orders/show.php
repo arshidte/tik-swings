@@ -43,14 +43,18 @@
     <div class="space-y-6">
         <div class="bg-surface rounded-lg border border-line p-5">
             <h2 class="font-medium mb-3">Update status</h2>
-            <form method="post" action="<?= base_url('admin/orders/status/' . $order['id']) ?>" class="space-y-3">
-                <?= csrf_field() ?>
-                <select name="status" class="field-input">
-                    <?php foreach ($statuses as $s): ?><option value="<?= $s ?>" <?= $order['status'] === $s ? 'selected' : '' ?>><?= order_status_label($s) ?></option><?php endforeach ?>
-                </select>
-                <input name="note" class="field-input" placeholder="Note (optional)">
-                <button class="btn-primary btn-block btn-sm">Update</button>
-            </form>
+            <?php if (count($statuses) > 1): ?>
+                <form method="post" action="<?= base_url('admin/orders/status/' . $order['id']) ?>" class="space-y-3">
+                    <?= csrf_field() ?>
+                    <select name="status" class="field-input">
+                        <?php foreach ($statuses as $s): ?><option value="<?= $s ?>" <?= $order['status'] === $s ? 'selected' : '' ?>><?= order_status_label($s) ?><?= $order['status'] === $s ? ' (current)' : '' ?></option><?php endforeach ?>
+                    </select>
+                    <input name="note" class="field-input" placeholder="Note (optional)">
+                    <button class="btn-primary btn-block btn-sm">Update</button>
+                </form>
+            <?php else: ?>
+                <p class="text-sm text-muted">This order is <?= esc(strtolower(order_status_label($order['status']))) ?>; its status can't be changed any further.</p>
+            <?php endif ?>
         </div>
         <div class="bg-surface rounded-lg border border-line p-5">
             <h2 class="font-medium mb-3">Courier &amp; Tracking</h2>
@@ -75,7 +79,7 @@
             <h2 class="font-medium mb-3">Customer</h2>
             <p class="text-sm"><?= esc($order['email']) ?></p>
             <p class="text-sm text-muted"><?= esc($order['phone']) ?></p>
-            <p class="text-sm text-muted mt-1">Payment: <?= esc($order['payment_method']) ?> · <?= esc($order['payment_status']) ?></p>
+            <p class="text-sm text-muted mt-1">Payment: <?= esc(payment_method_label($order['payment_method'])) ?> · <?= esc(payment_status_label($order['payment_status'])) ?></p>
         </div>
         <?php if ($ship): ?>
             <div class="bg-surface rounded-lg border border-line p-5">

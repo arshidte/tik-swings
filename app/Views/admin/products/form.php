@@ -6,6 +6,67 @@ $p = $product;
 $errors = session('errors') ?? [];
 $val = fn ($k, $d = '') => esc(old($k, $p[$k] ?? $d));
 $action = $p ? base_url('admin/products/update/' . $p['id']) : base_url('admin/products/store');
+
+// Render-ready HTML for a rich-text field's editor. After a failed save the
+// posted HTML comes back; never echo it unsanitized. Otherwise, legacy
+// plain-text values are escaped and paragraph-wrapped, already-HTML ones
+// pass through as-is. The three "optional" fields show blank (not the
+// storefront's default wording) when unset — that default is applied at
+// render time on the product page, not here.
+$htmlFor = fn (string $field) => old($field)
+    ? (new \App\Services\HtmlSanitizer())->clean((string) old($field))
+    : cms_html($p[$field] ?? '');
+
+/**
+ * A rich-text editor field: toolbar + contenteditable area + HTML source
+ * textarea + hidden value textarea submitted as $field. Shared by
+ * Description and the optional per-product overrides below.
+ */
+$rteField = function (string $field, string $label, string $html, string $help = '', string $minH = '8rem', string $maxH = '24rem') use ($errors) {
+    $areaId  = $field . '-area';
+    $labelId = $field . '-label';
+    $btn = static fn (string $cmd, string $lbl, string $inner) =>
+        '<button type="button" class="rte-btn" data-cmd="' . $cmd . '" title="' . esc($lbl, 'attr') . '" aria-label="' . esc($lbl, 'attr') . '" aria-pressed="false">' . $inner . '</button>';
+    ob_start(); ?>
+    <div>
+        <label class="field-label" id="<?= $labelId ?>"><?= esc($label) ?></label>
+        <div class="rounded-md border border-line focus-within:border-ink overflow-hidden bg-bg" data-rte>
+            <div role="toolbar" aria-label="Text formatting" aria-controls="<?= $areaId ?>" class="flex flex-wrap items-center gap-1 border-b border-line bg-sand/40 px-2 py-1.5" data-rte-toolbar>
+                <?= $btn('undo', 'Undo', '↶') ?>
+                <?= $btn('redo', 'Redo', '↷') ?>
+                <span class="rte-sep" aria-hidden="true"></span>
+                <select class="rte-select" aria-label="Paragraph style" data-rte-block>
+                    <option value="p">Paragraph</option>
+                    <option value="h3">Heading</option>
+                    <option value="h4">Small heading</option>
+                </select>
+                <span class="rte-sep" aria-hidden="true"></span>
+                <?= $btn('bold', 'Bold (Ctrl+B)', '<b>B</b>') ?>
+                <?= $btn('italic', 'Italic (Ctrl+I)', '<i>I</i>') ?>
+                <?= $btn('underline', 'Underline (Ctrl+U)', '<u>U</u>') ?>
+                <?= $btn('strikeThrough', 'Strikethrough', '<s>S</s>') ?>
+                <span class="rte-sep" aria-hidden="true"></span>
+                <?= $btn('insertUnorderedList', 'Bulleted list', '• List') ?>
+                <?= $btn('insertOrderedList', 'Numbered list', '1. List') ?>
+                <span class="rte-sep" aria-hidden="true"></span>
+                <?= $btn('link', 'Insert link (Ctrl+K)', 'Link') ?>
+                <?= $btn('unlink', 'Remove link', 'Unlink') ?>
+                <span class="rte-sep" aria-hidden="true"></span>
+                <?= $btn('clear', 'Clear formatting', 'Tx') ?>
+                <?= $btn('source', 'Edit HTML source', '&lt;/&gt;') ?>
+            </div>
+            <div id="<?= $areaId ?>" contenteditable="true" role="textbox" aria-multiline="true" aria-labelledby="<?= $labelId ?>"
+                 class="product-description text-sm leading-relaxed text-ink px-4 py-3 min-h-[<?= $minH ?>] max-h-[<?= $maxH ?>] overflow-y-auto focus:outline-none"
+                 data-rte-area><?= $html ?></div>
+            <textarea class="hidden w-full min-h-[<?= $minH ?>] max-h-[<?= $maxH ?>] p-3 font-mono text-sm bg-bg focus:outline-none" spellcheck="false" aria-label="HTML source" data-rte-source></textarea>
+            <textarea name="<?= esc($field, 'attr') ?>" hidden data-rte-value></textarea>
+        </div>
+        <?php if ($help): ?><p class="field-help"><?= $help ?></p><?php endif ?>
+        <?php if (isset($errors[$field])): ?><p class="field-error"><?= esc($errors[$field]) ?></p><?php endif ?>
+    </div>
+    <?php
+    return ob_get_clean();
+};
 ?>
 <a href="<?= base_url('admin/products') ?>" class="text-sm text-muted hover:text-wood">← Back to products</a>
 
@@ -25,7 +86,7 @@ $action = $p ? base_url('admin/products/update/' . $p['id']) : base_url('admin/p
                 <div><label class="field-label" for="sku">SKU</label><input id="sku" name="sku" class="field-input" required value="<?= $val('sku') ?>"><?php if (isset($errors['sku'])): ?><p class="field-error"><?= esc($errors['sku']) ?></p><?php endif ?></div>
             </div>
             <div><label class="field-label" for="short_description">Short description</label><input id="short_description" name="short_description" class="field-input" value="<?= $val('short_description') ?>"></div>
-            <div><label class="field-label" for="description">Description</label><textarea id="description" name="description" rows="6" class="field-input"><?= $val('description') ?></textarea></div>
+            <?= $rteField('description', 'Description', $htmlFor('description'), '', '10rem', '28rem') ?>
         </div>
 
         <div class="bg-surface rounded-lg border border-line p-5 space-y-4">
@@ -39,6 +100,14 @@ $action = $p ? base_url('admin/products/update/' . $p['id']) : base_url('admin/p
                 <div><label class="field-label" for="warranty">Warranty</label><input id="warranty" name="warranty" class="field-input" value="<?= $val('warranty') ?>"></div>
                 <div class="sm:col-span-2"><label class="field-label" for="delivery_estimate">Delivery estimate</label><input id="delivery_estimate" name="delivery_estimate" class="field-input" value="<?= $val('delivery_estimate') ?>"></div>
             </div>
+        </div>
+
+        <div class="bg-surface rounded-lg border border-line p-5 space-y-4">
+            <h2 class="font-medium">Product page sections</h2>
+            <p class="field-help !mt-0.5">These appear as their own expandable sections on the product page, below Description. Leave any of them blank to hide that section on the product page.</p>
+            <?= $rteField('craftsmanship', 'Craftsmanship', $htmlFor('craftsmanship'), 'Blank hides this section on the product page.') ?>
+            <?= $rteField('returns_policy', 'Returns', $htmlFor('returns_policy'), 'Blank hides this section on the product page.') ?>
+            <?= $rteField('care_instructions', 'Care instructions', $htmlFor('care_instructions'), 'Blank hides this section on the product page.') ?>
         </div>
 
         <div class="bg-surface rounded-lg border border-line p-5 space-y-4">
@@ -94,7 +163,7 @@ $action = $p ? base_url('admin/products/update/' . $p['id']) : base_url('admin/p
                     <!-- Live card preview -->
                     <div class="sm:sticky sm:top-4">
                         <p class="text-xs font-medium mb-2">Card preview <span class="text-muted font-normal">(hover it)</span></p>
-                        <div class="group relative aspect-square rounded-lg overflow-hidden bg-sand border border-line" data-card-preview tabindex="0" aria-label="Product card preview">
+                        <div class="group relative aspect-[4/5] rounded-lg overflow-hidden bg-sand border border-line" data-card-preview tabindex="0" aria-label="Product card preview">
                             <img src="<?= esc(product_image($cardImg['image'] ?? null), 'attr') ?>" alt="" class="absolute inset-0 w-full h-full object-cover transition-opacity duration-300 group-hover:opacity-0 group-focus:opacity-0" data-prev-card>
                             <img src="<?= esc(product_image($hoverImg['image'] ?? null), 'attr') ?>" alt="" class="absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-300 group-hover:opacity-100 group-focus:opacity-100 <?= $hoverImg ? '' : 'hidden' ?>" data-prev-hover>
                         </div>
@@ -293,7 +362,13 @@ $action = $p ? base_url('admin/products/update/' . $p['id']) : base_url('admin/p
         <div class="bg-surface rounded-lg border border-line p-5 space-y-4">
             <h2 class="font-medium">Pricing &amp; Stock</h2>
             <div><label class="field-label" for="price">Price (₹)</label><input id="price" name="price" type="number" step="0.01" class="field-input" required value="<?= $val('price') ?>"><?php if (isset($errors['price'])): ?><p class="field-error"><?= esc($errors['price']) ?></p><?php endif ?></div>
-            <div><label class="field-label" for="compare_price">Compare-at price (₹)</label><input id="compare_price" name="compare_price" type="number" step="0.01" class="field-input" value="<?= $val('compare_price') ?>"></div>
+            <?php $discountVal = old('discount_percent', isset($p['discount_percent']) ? (string) (float) $p['discount_percent'] : ''); ?>
+            <div>
+                <label class="field-label" for="discount_percent">Discount (%)</label>
+                <input id="discount_percent" name="discount_percent" type="number" step="0.01" min="0" max="99.99" class="field-input" value="<?= esc($discountVal) ?>" aria-describedby="discount-help" data-discount-input>
+                <p id="discount-help" class="field-help">Applies to this product and every variant: each one shows a struck-through price worked out from its own price. Leave blank for no discount. <span class="text-ink" data-discount-preview></span></p>
+                <?php if (isset($errors['discount_percent'])): ?><p class="field-error"><?= esc($errors['discount_percent']) ?></p><?php endif ?>
+            </div>
             <div><label class="field-label" for="cost_price">Cost price (₹)</label><input id="cost_price" name="cost_price" type="number" step="0.01" class="field-input" value="<?= $val('cost_price') ?>"></div>
             <div><label class="field-label" for="stock">Stock</label><input id="stock" name="stock" type="number" class="field-input" value="<?= $val('stock', '0') ?>"></div>
             <div><label class="field-label" for="stock_status">Stock status</label>
@@ -379,9 +454,57 @@ $action = $p ? base_url('admin/products/update/' . $p['id']) : base_url('admin/p
     <?php endif ?>
 </section>
 <?php endif ?>
+
+<!-- Description editor: link dialog -->
+<dialog id="rte-link-dialog" aria-labelledby="rte-link-title" closedby="any" class="rte-dialog">
+    <form method="dialog" class="space-y-4" data-link-form>
+        <h2 id="rte-link-title" class="font-medium text-lg">Insert link</h2>
+        <div>
+            <label class="field-label" for="rte-link-url">Web address</label>
+            <input id="rte-link-url" type="text" inputmode="url" class="field-input" placeholder="https://… or /shop" autofocus required data-link-url>
+        </div>
+        <label class="flex items-center gap-2 text-sm"><input type="checkbox" class="w-4 h-4 rounded border-line text-wood focus:ring-wood/30" data-link-blank> Open in a new tab</label>
+        <div class="flex justify-end gap-2">
+            <button type="submit" value="cancel" formnovalidate class="btn-outline btn-sm">Cancel</button>
+            <button type="submit" value="ok" class="btn-primary btn-sm">Insert link</button>
+        </div>
+    </form>
+</dialog>
 <?= $this->endSection() ?>
 
 <?= $this->section('scripts') ?>
+<style>
+    .rte-btn { min-width: 2rem; height: 2rem; padding: 0 .5rem; border-radius: .375rem; font-size: .8125rem; line-height: 1; white-space: nowrap; color: rgb(var(--color-ink)); }
+    .rte-btn:hover { background: rgb(var(--color-sand)); }
+    .rte-btn[aria-pressed="true"] { background: rgb(var(--color-ink)); color: rgb(var(--color-bg)); }
+    .rte-btn:disabled { opacity: .35; pointer-events: none; }
+    .rte-sep { width: 1px; height: 1.25rem; background: rgb(var(--color-line)); margin: 0 .25rem; }
+    .rte-select { height: 2rem; border: 1px solid rgb(var(--color-line)); border-radius: .375rem; background: rgb(var(--color-bg)); font-size: .8125rem; padding: 0 .5rem; }
+    [data-rte-area]:empty::before { content: 'Start writing…'; color: rgb(var(--color-ink) / .4); pointer-events: none; }
+    .rte-dialog { border: 0; border-radius: .75rem; padding: 1.5rem; width: min(30rem, calc(100vw - 2rem)); background: rgb(var(--color-surface)); color: rgb(var(--color-ink)); box-shadow: 0 20px 50px rgb(0 0 0 / .25); }
+    .rte-dialog::backdrop { background: rgb(0 0 0 / .45); overflow: hidden; overscroll-behavior: contain; }
+    dialog:modal { overscroll-behavior: contain; }
+</style>
+<script>
+(function () {
+  // Live example of the discount, using the same formula as ProductModel::compareAtPrice().
+  var pctEl = document.querySelector('[data-discount-input]');
+  var out = document.querySelector('[data-discount-preview]');
+  var priceEl = document.getElementById('price');
+  if (!pctEl || !out || !priceEl) return;
+  var inr = function (n) { return '₹' + Math.round(n).toLocaleString('en-IN'); };
+  function update() {
+    var price = parseFloat(priceEl.value) || 0, pct = parseFloat(pctEl.value) || 0;
+    out.textContent = (price > 0 && pct > 0 && pct < 100)
+      ? 'E.g. ' + inr(price) + ' shows as ' + inr(price / (1 - pct / 100)) + ' struck through.'
+      : '';
+  }
+  pctEl.addEventListener('input', update);
+  priceEl.addEventListener('input', update);
+  update();
+})();
+</script>
+<script src="<?= base_url('assets/js/admin_product_description.js') ?>?v=2"></script>
 <script src="<?= base_url('assets/js/admin_variants.js') ?>?v=6"></script>
 <script src="<?= base_url('assets/js/admin_addons.js') ?>?v=1"></script>
 <script src="<?= base_url('assets/js/admin_images.js') ?>?v=1"></script>

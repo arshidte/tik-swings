@@ -2,6 +2,7 @@
 
 namespace App\Database\Seeds;
 
+use App\Models\ProductModel;
 use CodeIgniter\Database\Seeder;
 
 /**
@@ -72,7 +73,8 @@ class SwingChainsSeeder extends Seeder
             'short_description'      => $short,
             'description'            => $long,
             'price'                  => 2999,    // placeholder — confirm & update
-            'compare_price'          => 3999,    // placeholder
+            'discount_percent'       => 25,      // placeholder → ₹3,999 struck through
+            'compare_price'          => ProductModel::compareAtPrice(2999, 25),
             'cost_price'             => null,
             'stock'                  => 40,
             'stock_status'           => 'in_stock',
@@ -141,7 +143,7 @@ class SwingChainsSeeder extends Seeder
                 'sku'           => "{$sku}-{$abbr}",
                 'name'          => "Swing Hanging Chain & Hardware Kit — {$finish}",
                 'price'         => 2999,
-                'compare_price' => 3999,
+                'compare_price' => ProductModel::compareAtPrice(2999, 25),
                 'stock'         => 40,
                 'image'         => "{$base}/{$img}",
                 'is_default'    => $isDefault,

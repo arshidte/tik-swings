@@ -75,3 +75,18 @@
 
 # RAZORPAY_KEY_ID = rzp_test_xxxxxxxxxxxxxx
 # RAZORPAY_KEY_SECRET = xxxxxxxxxxxxxxxxxxxxxxxx
+
+# Cash on delivery is offered at checkout only when this is true.
+# COD_ENABLED = true
+
+
+#--------------------------------------------------------------------
+# SMS — FAST2SMS (DLT route)
+#--------------------------------------------------------------------
+# SMS is only sent when SMS_ENABLED = true. Leave it unset locally so
+# development never texts real customers. Templates: app/Config/Sms.php
+# Test with: php spark sms:test order_confirmed <your-mobile>
+
+# SMS_ENABLED = true
+# FAST2SMS_API_KEY = your_fast2sms_api_key
+# FAST2SMS_SENDER_ID = TIKSHP

@@ -8,7 +8,7 @@
             <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m5 13 4 4L19 7"/></svg>
         </span>
         <h1 class="text-h1 font-display">Thank you<?= session('user_name') ? ', ' . esc(explode(' ', session('user_name'))[0]) : '' ?>!</h1>
-        <p class="mt-3 text-muted">Your order is confirmed. We've emailed the details to <span class="text-ink"><?= esc($order['email']) ?></span>.</p>
+        <p class="mt-3 text-muted">Your order is confirmed. Keep your order number below to track it anytime.</p>
         <p class="mt-1 text-muted">Order number: <span class="font-medium text-ink"><?= esc($order['order_number']) ?></span></p>
     </div>
 
@@ -33,7 +33,7 @@
             <div class="flex justify-between"><dt class="text-muted">Shipping</dt><dd class="tabular-nums"><?= $order['shipping'] > 0 ? price($order['shipping']) : 'Free' ?></dd></div>
             <div class="flex justify-between font-medium text-base border-t border-line pt-3 mt-1"><dt>Total</dt><dd class="tabular-nums"><?= price($order['total']) ?></dd></div>
         </dl>
-        <p class="text-sm text-muted mt-4">Payment: <?= esc(ucwords(str_replace('_', ' ', $order['payment_method']))) ?> · <?= esc(ucfirst($order['payment_status'])) ?></p>
+        <p class="text-sm text-muted mt-4">Payment: <?= esc(payment_method_label($order['payment_method'])) ?> · <?= esc(payment_status_label($order['payment_status'])) ?></p>
         <?php if ($ship): ?>
             <p class="text-sm text-muted mt-2">Delivering to: <?= esc($ship['line1']) ?>, <?= esc($ship['city']) ?>, <?= esc($ship['state']) ?> <?= esc($ship['pincode']) ?></p>
         <?php endif ?>

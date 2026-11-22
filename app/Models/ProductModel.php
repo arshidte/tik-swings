@@ -13,7 +13,8 @@ class ProductModel extends Model
     protected $useSoftDeletes   = true;
     protected $allowedFields    = [
         'category_id', 'name', 'slug', 'sku', 'short_description', 'description',
-        'price', 'compare_price', 'cost_price', 'stock', 'stock_status', 'has_variants',
+        'craftsmanship', 'returns_policy', 'care_instructions',
+        'price', 'compare_price', 'discount_percent', 'cost_price', 'stock', 'stock_status', 'has_variants',
         'material', 'wood_type', 'finish', 'dimensions', 'weight_capacity', 'warranty',
         'delivery_estimate', 'installation_available', 'is_customizable',
         'rating_avg', 'rating_count', 'featured', 'status',
@@ -26,6 +27,23 @@ class ProductModel extends Model
         'sku'   => 'required|max_length[80]',
         'price' => 'required|decimal|greater_than_equal_to[0]',
     ];
+
+    /**
+     * Compare-at ("was") price for a selling price under a product's discount
+     * percentage: a 20% discount on ₹6,500 gives ₹8,125. Whole rupees; null
+     * when there is no discount. `discount_percent` is the source of truth;
+     * the product's and its variants' `compare_price` columns are derived from
+     * it on save so storefront queries can keep reading them directly.
+     */
+    public static function compareAtPrice(float $price, $discountPercent): ?float
+    {
+        $pct = (float) $discountPercent;
+        if ($price <= 0 || $pct <= 0 || $pct >= 100) {
+            return null;
+        }
+
+        return round($price / (1 - $pct / 100));
+    }
 
     /**
      * Select only the columns product cards/listings need (avoids SELECT *).

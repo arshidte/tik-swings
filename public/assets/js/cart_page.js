@@ -62,10 +62,6 @@ if (page) {
     toast(res.message, res.success ? 'success' : 'error');
     if (res.success) applySnapshot(res.data);
   });
-  $('[data-coupon-suggest]')?.addEventListener('click', () => {
-    couponForm.code.value = 'WELCOME10';
-    couponForm.requestSubmit();
-  });
 
   // "Pairs well with" — add without opening the drawer, then re-render the page.
   const pairs = $('[data-cart-page-suggestions]', page);

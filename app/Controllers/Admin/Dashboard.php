@@ -32,10 +32,13 @@ class Dashboard extends BaseController
 
     private function salesByDay($db): array
     {
+        // Start date from PHP, not CURDATE(): timestamps are written in the app
+        // timezone, which the database server's clock may not match.
         $rows = $db->query(
             "SELECT DATE(created_at) d, COALESCE(SUM(total),0) s FROM orders
-             WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 13 DAY)
-             GROUP BY DATE(created_at)"
+             WHERE created_at >= ?
+             GROUP BY DATE(created_at)",
+            [date('Y-m-d', strtotime('-13 days'))]
         )->getResultArray();
         $map = array_column($rows, 's', 'd');
 

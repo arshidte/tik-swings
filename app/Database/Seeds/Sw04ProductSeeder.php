@@ -2,6 +2,7 @@
 
 namespace App\Database\Seeds;
 
+use App\Models\ProductModel;
 use CodeIgniter\Database\Seeder;
 
 /**
@@ -54,7 +55,8 @@ class Sw04ProductSeeder extends Seeder
             'short_description'      => $short,
             'description'            => $long,
             'price'                  => 39999,   // placeholder — confirm & update
-            'compare_price'          => 47999,   // placeholder
+            'discount_percent'       => 16.67,   // placeholder → ₹48,001 struck through
+            'compare_price'          => ProductModel::compareAtPrice(39999, 16.67),
             'cost_price'             => null,
             'stock'                  => 15,
             'stock_status'           => 'made_to_order',
@@ -127,7 +129,7 @@ class Sw04ProductSeeder extends Seeder
                 'sku'           => "{$sku}-" . $abbr($wood),
                 'name'          => "Premium Wooden Hanging Swing — {$wood}",
                 'price'         => 39999,
-                'compare_price' => 47999,
+                'compare_price' => ProductModel::compareAtPrice(39999, 16.67),
                 'stock'         => 15,
                 'image'         => "{$base}/main/railing-swing-01.webp",
                 'is_default'    => $isDefault,

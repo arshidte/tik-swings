@@ -13,6 +13,7 @@ use App\Models\ProductOptionModel;
 use App\Models\ProductOptionValueModel;
 use App\Models\ProductUserMediaModel;
 use App\Models\ProductVariantModel;
+use App\Services\HtmlSanitizer;
 use App\Services\ImageUploadService;
 
 class Products extends BaseController
@@ -131,6 +132,7 @@ class Products extends BaseController
             'name'  => 'required|max_length[190]',
             'sku'   => "required|max_length[80]|is_unique[products.sku,id,{$id}]",
             'price' => 'required|numeric|greater_than_equal_to[0]',
+            'discount_percent' => 'permit_empty|numeric|greater_than_equal_to[0]|less_than[100]',
             'category_id' => 'permit_empty|is_natural_no_zero',
         ];
         if (! $this->validate($rules)) {
@@ -181,9 +183,13 @@ class Products extends BaseController
             'sku'               => trim((string) $this->request->getPost('sku')),
             'category_id'       => $this->request->getPost('category_id') ?: null,
             'short_description' => $this->request->getPost('short_description'),
-            'description'       => $this->request->getPost('description'),
+            'description'       => (new HtmlSanitizer())->clean((string) $this->request->getPost('description')),
+            'craftsmanship'     => $this->cleanOptionalHtml('craftsmanship'),
+            'returns_policy'    => $this->cleanOptionalHtml('returns_policy'),
+            'care_instructions' => $this->cleanOptionalHtml('care_instructions'),
             'price'             => (float) $this->request->getPost('price'),
-            'compare_price'     => $this->request->getPost('compare_price') ?: null,
+            'discount_percent'  => $this->discountPercent(),
+            'compare_price'     => ProductModel::compareAtPrice((float) $this->request->getPost('price'), $this->discountPercent()),
             'cost_price'        => $this->request->getPost('cost_price') ?: null,
             'stock'             => (int) $this->request->getPost('stock'),
             'stock_status'      => $this->request->getPost('stock_status') ?: 'in_stock',
@@ -204,6 +210,25 @@ class Products extends BaseController
         ];
     }
 
+    /** Posted discount %, or null when blank/zero (validation rejects out-of-range values). */
+    private function discountPercent(): ?float
+    {
+        $pct = (float) $this->request->getPost('discount_percent');
+
+        return $pct > 0 ? round($pct, 2) : null;
+    }
+
+    /**
+     * Sanitize an optional rich-text override field; blank means "use the
+     * site's default text for this section" (see App\Views\frontend\product).
+     */
+    private function cleanOptionalHtml(string $field): ?string
+    {
+        $clean = (new HtmlSanitizer())->clean((string) $this->request->getPost($field));
+
+        return $clean === '' ? null : $clean;
+    }
+
     /**
      * Persist the admin variant editor: find-or-create global attributes and
      * values (reused by name), store this product's per-option price settings
@@ -222,8 +247,8 @@ class Products extends BaseController
         $variantModel = new ProductVariantModel();
         $db           = db_connect();
 
-        $basePrice   = (float) $this->request->getPost('price');
-        $baseCompare = ($c = $this->request->getPost('compare_price')) !== '' && $c !== null ? (float) $c : null;
+        $basePrice = (float) $this->request->getPost('price');
+        $discount  = $this->discountPercent();
 
         // 1. Resolve attributes + values; capture price behaviour -----------
         $attrIdByTemp     = [];   // attribute temp key => attribute_id
@@ -315,7 +340,7 @@ class Products extends BaseController
                     'sku'           => $sku,
                     'name'          => implode(' / ', $labels),
                     'price'         => $price,
-                    'compare_price' => $baseCompare !== null ? max(0, $baseCompare + $adjSum) : null,
+                    'compare_price' => ProductModel::compareAtPrice($price, $discount),
                     'stock'         => (int) ($row['stock'] ?? 0),
                     'is_default'    => 0,
                     'status'        => ($row['status'] ?? 'active') === 'inactive' ? 'inactive' : 'active',
@@ -345,23 +370,67 @@ class Products extends BaseController
             $defaultTemp = (string) array_key_first($payloads);
         }
 
-        // 4. Persist options + adjustments, then rebuild variants -----------
+        // 4. Persist options + adjustments, then sync variants ---------------
+        // Existing variants are updated in place so their IDs stay stable:
+        // cart lines and order items reference variants by ID.
+        $db->transStart();
+
         (new ProductOptionModel())->replaceForProduct($productId, $optionRows);
         (new ProductOptionValueModel())->replaceForProduct($productId, $optionValueRows);
 
-        $oldIds = array_column(
-            $db->table('product_variants')->select('id')->where('product_id', $productId)->get()->getResultArray(),
+        $existing = array_column(
+            $db->table('product_variants')->select('id, sku')->where('product_id', $productId)->get()->getResultArray(),
+            'sku',
             'id'
         );
-        if ($oldIds) {
-            $db->table('product_variant_attributes')->whereIn('variant_id', $oldIds)->delete();
-            $db->table('product_variants')->where('product_id', $productId)->delete();
+
+        // Match each row to an existing variant: by its "x<id>" editor key,
+        // otherwise by SKU (e.g. a variant removed and re-added in the editor).
+        $matchedId = [];
+        $claimed   = [];
+        foreach ($payloads as $vTemp => $data) {
+            $id = preg_match('/^x(\d+)$/', (string) $vTemp, $m) ? (int) $m[1] : 0;
+            if (isset($existing[$id])) {
+                $matchedId[$vTemp] = $id;
+                $claimed[$id]      = true;
+            }
+        }
+        foreach ($payloads as $vTemp => $data) {
+            if (isset($matchedId[$vTemp])) {
+                continue;
+            }
+            $id = array_search($data['variant']['sku'], array_diff_key($existing, $claimed), true);
+            if ($id !== false) {
+                $matchedId[$vTemp] = (int) $id;
+                $claimed[$id]      = true;
+            }
+        }
+
+        $removed = array_keys(array_diff_key($existing, $claimed));
+        if ($removed) {
+            $db->table('product_variants')->whereIn('id', $removed)->delete();
+        }
+
+        // Park changed SKUs first so two variants can swap SKUs without
+        // tripping the unique index mid-update.
+        foreach ($matchedId as $vTemp => $id) {
+            if ($existing[$id] !== $payloads[$vTemp]['variant']['sku']) {
+                $db->table('product_variants')->where('id', $id)->update(['sku' => '__tmp_' . $id]);
+            }
         }
 
         foreach ($payloads as $vTemp => $data) {
             $variant               = $data['variant'];
             $variant['is_default'] = $vTemp === $defaultTemp ? 1 : 0;
-            $variantId             = (int) $variantModel->insert($variant, true);
+
+            if (isset($matchedId[$vTemp])) {
+                $variantId = $matchedId[$vTemp];
+                $variantModel->update($variantId, $variant);
+                $db->table('product_variant_attributes')->where('variant_id', $variantId)->delete();
+            } else {
+                $variantId = (int) $variantModel->insert($variant, true);
+            }
+
             foreach ($data['combo'] as $attrId => $valueId) {
                 $db->table('product_variant_attributes')->insert([
                     'variant_id'         => $variantId,
@@ -369,6 +438,13 @@ class Products extends BaseController
                     'attribute_value_id' => $valueId,
                 ]);
             }
+        }
+
+        $db->transComplete();
+        if (! $db->transStatus()) {
+            session()->setFlashdata('error', 'Could not save the variants. Please try again.');
+
+            return;
         }
 
         // 5. Flag whether the product carries variants ----------------------

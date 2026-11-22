@@ -63,6 +63,7 @@ class Sw02ProductSeeder extends Seeder
             'description'            => $long,
             'price'                  => 14800,   // cheapest variant (3 Feet / Standard Polish)
             'compare_price'          => null,    // pricelist has no MRP
+            'discount_percent'       => null,
             'cost_price'             => null,
             'stock'                  => 15,
             'stock_status'           => 'made_to_order',

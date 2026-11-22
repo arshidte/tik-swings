@@ -104,7 +104,7 @@ class Account extends BaseController
             'line2'     => $this->request->getPost('line2'),
             'city'      => $this->request->getPost('city'),
             'state'     => $this->request->getPost('state'),
-            'pincode'   => $this->request->getPost('pincode'),
+            'pincode'   => AddressModel::normalizePincode($this->request->getPost('pincode')),
             'is_default' => $this->request->getPost('is_default') ? 1 : 0,
         ];
 

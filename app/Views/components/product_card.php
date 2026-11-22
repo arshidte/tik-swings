@@ -14,14 +14,14 @@ $rating   = (float) ($p['rating_avg'] ?? 0);
 $rcount   = (int) ($p['rating_count'] ?? 0);
 ?>
 <article class="group relative flex flex-col" data-product-id="<?= (int) $p['id'] ?>">
-    <div class="relative aspect-square overflow-hidden rounded-lg bg-sand">
+    <div class="relative aspect-[4/5] overflow-hidden rounded-lg bg-sand">
         <a href="<?= esc($url, 'attr') ?>" class="block w-full h-full" aria-label="<?= esc($p['name'], 'attr') ?>">
             <img src="<?= esc($img, 'attr') ?>" alt="<?= esc($p['primary_alt'] ?? $p['name'], 'attr') ?>"
-                 width="1000" height="1000" loading="lazy" decoding="async"
+                 width="800" height="1000" loading="lazy" decoding="async"
                  class="w-full h-full object-cover transition-transform duration-500 ease-out-soft group-hover:scale-[1.04] <?= $hover ? 'group-hover:opacity-0' : '' ?>">
             <?php if ($hover): ?>
                 <img src="<?= esc($hover, 'attr') ?>" alt="" aria-hidden="true"
-                     width="1000" height="1000" loading="lazy" decoding="async"
+                     width="800" height="1000" loading="lazy" decoding="async"
                      class="absolute inset-0 w-full h-full object-cover opacity-0 scale-[1.04] transition-opacity duration-500 ease-out-soft group-hover:opacity-100">
             <?php endif ?>
         </a>

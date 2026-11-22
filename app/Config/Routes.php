@@ -33,6 +33,7 @@ $routes->get('faq', 'Frontend\Pages::faq');
 $routes->get('journal', 'Frontend\Pages::journal');
 $routes->get('journal/(:segment)', 'Frontend\Pages::journalPost/$1');
 $routes->post('newsletter/subscribe', 'Frontend\Pages::subscribe');
+$routes->get('track-order', 'Frontend\TrackOrder::index'); // SMS link: /track-order?order=SW…
 
 // ---------------------------------------------------------------------------
 // Cart & wishlist (AJAX, §27–§29)

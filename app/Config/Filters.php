@@ -36,6 +36,7 @@ class Filters extends BaseFilters
         'performance'   => PerformanceMetrics::class,
         'auth'          => \App\Filters\AuthFilter::class,
         'admin'         => \App\Filters\AdminFilter::class,
+        'sessionuser'   => \App\Filters\SessionUserFilter::class,
     ];
 
     /**
@@ -74,6 +75,7 @@ class Filters extends BaseFilters
      */
     public array $globals = [
         'before' => [
+            'sessionuser', // drop sessions of deleted/suspended users before auth checks
             'csrf' => ['except' => ['checkout/payment/verify']], // gateway callbacks verified by signature (§31)
             'invalidchars',
         ],

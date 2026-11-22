@@ -4,7 +4,6 @@
 <?php
 $p        = $product;
 $images   = $p['images'] ?: [['image' => null, 'alt_text' => $p['name']]];
-$discount = discount_percent($p['price'], $p['compare_price'] ?? 0);
 $inWish   = in_array((int) $p['id'], array_map('intval', $wishIds), true);
 $inStock  = $p['stock_status'] !== 'out_of_stock' && ((int) $p['stock'] > 0 || $p['stock_status'] === 'made_to_order' || ! empty($p['variants']));
 
@@ -25,6 +24,9 @@ foreach ($p['variants'] as $v) {
     if (! empty($v['is_default'])) { $defaultVariant = $v; break; }
 }
 $defaultVariant = $defaultVariant ?: ($p['variants'][0] ?? null);
+// The page opens on the default variant, so its price and "was" price must pair up.
+$shownCompare = $defaultVariant ? $defaultVariant['compare_price'] : $p['compare_price'];
+$discount     = discount_percent($defaultVariant['price'] ?? $p['price'], $shownCompare ?? 0);
 
 $accordions = array_filter([
     'Description'      => $p['description'],
@@ -107,7 +109,7 @@ $richAccordions = ['Description', 'Craftsmanship', 'Returns', 'Care Instructions
             <div class="flex items-baseline gap-3 mt-3">
                 <span class="text-2xl font-display tabular-nums" data-price><?= price($defaultVariant['price'] ?? $p['price']) ?></span>
                 <?php if ($discount > 0): ?>
-                    <span class="text-lg text-subtle line-through tabular-nums" data-compare-price><?= price($p['compare_price']) ?></span>
+                    <span class="text-lg text-subtle line-through tabular-nums" data-compare-price><?= price($shownCompare) ?></span>
                     <span class="badge-sale" data-discount-badge>-<?= $discount ?>%</span>
                 <?php endif ?>
             </div>

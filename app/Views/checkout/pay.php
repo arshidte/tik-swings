@@ -7,7 +7,8 @@
     <div class="card p-8 mt-8">
         <p class="text-muted mb-6">You'll be redirected to our secure payment partner to finish paying.</p>
         <button type="button" class="btn-primary btn-block" data-pay-now>Pay <?= price($order['total']) ?> securely</button>
-        <p class="text-xs text-muted mt-4">Do not close or refresh this window.</p>
+        <p class="text-sm text-muted mt-4" data-hold-note>We're holding your items until <?= esc(date('g:i A', $holdUntil)) ?>. Please pay before then.</p>
+        <p class="text-xs text-muted mt-2">Do not close or refresh this window.</p>
     </div>
 </div>
 <?= $this->endSection() ?>
@@ -17,8 +18,22 @@
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
 const intent = <?= json_encode($intent) ?>;
-document.querySelector('[data-pay-now]').addEventListener('click', () => {
+// Seconds left on the stock hold, from the server clock (not the browser's).
+const holdDeadline = Date.now() + <?= max(0, $holdUntil - time()) ?> * 1000;
+const payBtn = document.querySelector('[data-pay-now]');
+function holdSecondsLeft() { return Math.floor((holdDeadline - Date.now()) / 1000); }
+function expireHold() {
+    payBtn.disabled = true;
+    document.querySelector('[data-hold-note]').textContent =
+        'This payment window has expired and your items were released. Please go back to the cart and place your order again.';
+}
+if (holdSecondsLeft() <= 0) expireHold(); else setTimeout(expireHold, holdSecondsLeft() * 1000);
+
+payBtn.addEventListener('click', () => {
+    if (holdSecondsLeft() <= 0) return expireHold();
     const rzp = new Razorpay({
+        // Close the payment window when the hold runs out.
+        timeout: Math.max(60, holdSecondsLeft()),
         key: intent.key,
         amount: intent.amount,
         currency: intent.currency,

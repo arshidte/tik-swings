@@ -159,7 +159,7 @@ $igHandle = ($igUrl && preg_match('#instagram\.com/([A-Za-z0-9_.]+)#i', $igUrl, 
 
         <!-- Elfsight Instagram Feed | Untitled Instagram Feed -->
         <div class="reveal min-h-[200px]">
-            <div class="elfsight-app-ff0e0cf3-f946-4c1b-9e14-de31a69f3a53" data-elfsight-app-lazy></div>
+            <div class="elfsight-app-9fcdc533-7a8e-46b9-884a-833cb367d6f9" data-elfsight-app-lazy></div>
         </div>
     </div>
 </section>

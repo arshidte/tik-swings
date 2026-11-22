@@ -118,6 +118,29 @@ if (! function_exists('order_status_label')) {
     }
 }
 
+if (! function_exists('payment_method_label')) {
+    /**
+     * Customer-facing name of a payment method key. Kept here rather than read
+     * from PaymentManager so disabled methods (e.g. COD) still show on old orders.
+     */
+    function payment_method_label(?string $method): string
+    {
+        return match ((string) $method) {
+            'cod'      => 'Cash on delivery',
+            'razorpay' => 'Online payment (Razorpay)',
+            ''         => 'Not recorded',
+            default    => ucwords(str_replace('_', ' ', (string) $method)),
+        };
+    }
+}
+
+if (! function_exists('payment_status_label')) {
+    function payment_status_label(?string $status): string
+    {
+        return ucwords(str_replace('_', ' ', (string) ($status ?: 'pending')));
+    }
+}
+
 if (! function_exists('order_status_class')) {
     /**
      * Tailwind classes for an order-status pill.

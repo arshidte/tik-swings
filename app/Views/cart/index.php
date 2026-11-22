@@ -85,7 +85,6 @@
                         <input type="text" name="code" placeholder="Coupon code" class="field-input py-2 min-h-[44px] text-sm uppercase" value="<?= esc($snapshot['coupon']['code'] ?? '') ?>">
                         <button type="submit" class="btn-outline btn-sm px-4">Apply</button>
                     </form>
-                    <p class="text-xs text-muted -mt-3 mb-5">Try <button type="button" class="text-wood font-medium" data-coupon-suggest>WELCOME10</button></p>
 
                     <dl class="space-y-2.5 text-sm border-t border-line pt-4">
                         <div class="flex justify-between"><dt class="text-muted">Subtotal</dt><dd class="tabular-nums" data-sum-subtotal><?= price($snapshot['subtotal']) ?></dd></div>

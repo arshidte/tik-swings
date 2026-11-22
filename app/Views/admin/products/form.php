@@ -362,7 +362,13 @@ $rteField = function (string $field, string $label, string $html, string $help =
         <div class="bg-surface rounded-lg border border-line p-5 space-y-4">
             <h2 class="font-medium">Pricing &amp; Stock</h2>
             <div><label class="field-label" for="price">Price (₹)</label><input id="price" name="price" type="number" step="0.01" class="field-input" required value="<?= $val('price') ?>"><?php if (isset($errors['price'])): ?><p class="field-error"><?= esc($errors['price']) ?></p><?php endif ?></div>
-            <div><label class="field-label" for="compare_price">Compare-at price (₹)</label><input id="compare_price" name="compare_price" type="number" step="0.01" class="field-input" value="<?= $val('compare_price') ?>"></div>
+            <?php $discountVal = old('discount_percent', isset($p['discount_percent']) ? (string) (float) $p['discount_percent'] : ''); ?>
+            <div>
+                <label class="field-label" for="discount_percent">Discount (%)</label>
+                <input id="discount_percent" name="discount_percent" type="number" step="0.01" min="0" max="99.99" class="field-input" value="<?= esc($discountVal) ?>" aria-describedby="discount-help" data-discount-input>
+                <p id="discount-help" class="field-help">Applies to this product and every variant: each one shows a struck-through price worked out from its own price. Leave blank for no discount. <span class="text-ink" data-discount-preview></span></p>
+                <?php if (isset($errors['discount_percent'])): ?><p class="field-error"><?= esc($errors['discount_percent']) ?></p><?php endif ?>
+            </div>
             <div><label class="field-label" for="cost_price">Cost price (₹)</label><input id="cost_price" name="cost_price" type="number" step="0.01" class="field-input" value="<?= $val('cost_price') ?>"></div>
             <div><label class="field-label" for="stock">Stock</label><input id="stock" name="stock" type="number" class="field-input" value="<?= $val('stock', '0') ?>"></div>
             <div><label class="field-label" for="stock_status">Stock status</label>
@@ -479,6 +485,25 @@ $rteField = function (string $field, string $label, string $html, string $help =
     .rte-dialog::backdrop { background: rgb(0 0 0 / .45); overflow: hidden; overscroll-behavior: contain; }
     dialog:modal { overscroll-behavior: contain; }
 </style>
+<script>
+(function () {
+  // Live example of the discount, using the same formula as ProductModel::compareAtPrice().
+  var pctEl = document.querySelector('[data-discount-input]');
+  var out = document.querySelector('[data-discount-preview]');
+  var priceEl = document.getElementById('price');
+  if (!pctEl || !out || !priceEl) return;
+  var inr = function (n) { return '₹' + Math.round(n).toLocaleString('en-IN'); };
+  function update() {
+    var price = parseFloat(priceEl.value) || 0, pct = parseFloat(pctEl.value) || 0;
+    out.textContent = (price > 0 && pct > 0 && pct < 100)
+      ? 'E.g. ' + inr(price) + ' shows as ' + inr(price / (1 - pct / 100)) + ' struck through.'
+      : '';
+  }
+  pctEl.addEventListener('input', update);
+  priceEl.addEventListener('input', update);
+  update();
+})();
+</script>
 <script src="<?= base_url('assets/js/admin_product_description.js') ?>?v=2"></script>
 <script src="<?= base_url('assets/js/admin_variants.js') ?>?v=6"></script>
 <script src="<?= base_url('assets/js/admin_addons.js') ?>?v=1"></script>
